@@ -44,6 +44,16 @@ export default async function FacultyHomePage({
   const liveBySection = new Map(
     (liveSessions ?? []).map((session) => [session.section_id, session.id]),
   )
+  const { data: pendingRequests } = sectionIds.length
+    ? await supabase
+        .from("roster_add_requests")
+        .select("section_id")
+        .in("section_id", sectionIds)
+        .eq("status", "pending")
+    : { data: [] as { section_id: number }[] }
+  const sectionsWithRequests = new Set(
+    (pendingRequests ?? []).map((row) => row.section_id),
+  )
   const startCourses = visibleCourses
     .filter((course) => (course.sections ?? []).length > 0)
     .map((course) => ({
@@ -167,7 +177,11 @@ export default async function FacultyHomePage({
                           <Link
                             key={section.id}
                             href={`/faculty/sections/${section.id}`}
-                            aria-label={`Open ${course.code}, ${formatSectionLabel(section)} roster`}
+                            aria-label={
+                              sectionsWithRequests.has(section.id)
+                                ? `Open ${course.code}, ${formatSectionLabel(section)} roster. Roster add requests pending.`
+                                : `Open ${course.code}, ${formatSectionLabel(section)} roster`
+                            }
                             className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#d5dbe3] border-l-4 border-l-[#333F58] bg-white px-4 py-3.5 transition-colors hover:border-[#333F58] hover:bg-white"
                           >
                             <div>
@@ -178,6 +192,27 @@ export default async function FacultyHomePage({
                                 {section.term?.trim() || "—"}
                               </p>
                             </div>
+                            {sectionsWithRequests.has(section.id) ? (
+                              <span
+                                className="inline-flex size-8 items-center justify-center text-[#CE1126]"
+                                title="Roster add requests"
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  className="size-6"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  aria-hidden
+                                >
+                                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+                                  <path d="M12 9v4" />
+                                  <path d="M12 17h.01" />
+                                </svg>
+                              </span>
+                            ) : null}
                             <div className="sm:text-right">
                               <p className="text-[11px] font-bold uppercase tracking-wider text-[#333F58]">
                                 Section Number

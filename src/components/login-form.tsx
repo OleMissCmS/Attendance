@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { signInFaculty } from "@/app/login/actions"
 import { signupErrorMessage } from "@/lib/faculty-email"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -22,17 +23,15 @@ export function LoginForm() {
     event.preventDefault()
     setStatus("working")
     setMessage("")
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+    const result = await signInFaculty(
+      email.trim().toLowerCase(),
       password,
-    })
-    if (error) {
+      nextPath(),
+    )
+    if (result?.error) {
       setStatus("error")
-      setMessage(error.message)
-      return
+      setMessage(result.error)
     }
-    window.location.assign(nextPath())
   }
 
   async function createAccount() {
@@ -49,18 +48,17 @@ export function LoginForm() {
       setMessage(signupErrorMessage(error.message, normalizedEmail))
       return
     }
-    const signedIn = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
+    const result = await signInFaculty(
+      normalizedEmail,
       password,
-    })
-    if (signedIn.error) {
+      nextPath(),
+    )
+    if (result?.error) {
       setStatus("error")
       setMessage(
         "Account created. If email confirmation is on in Supabase, confirm it, then sign in.",
       )
-      return
     }
-    window.location.assign(nextPath())
   }
 
   return (

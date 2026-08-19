@@ -14,19 +14,21 @@ export function SiteChrome({
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <header className="site-header sticky top-0 z-40 bg-[#000D26] text-white">
-        <div className="relative grid grid-cols-[1fr_auto] grid-rows-[auto_1fr] items-start gap-x-4 px-4 pb-2">
-          <Link
-            href={faculty ? "/faculty" : "/student"}
-            className="col-start-1 row-start-1 self-start justify-self-start leading-none text-white"
-            aria-label="Attendance Tracker"
-          >
-            <span className="flex flex-col text-[1.35em] font-extrabold leading-[1.05] tracking-tight">
-              <span>Attendance</span>
-              <span>Tracker</span>
-            </span>
-          </Link>
-          <div className="col-start-2 row-span-2 row-start-1 flex min-h-full flex-col items-end justify-between gap-3 self-stretch">
+        <div className="relative flex flex-col gap-3 px-4 pb-2">
+          <div className="flex justify-end">
             {profile ? <SignOutButton /> : <span className="h-7" aria-hidden />}
+          </div>
+          <div className="flex items-end justify-between gap-4">
+            <Link
+              href={faculty ? "/faculty" : "/student"}
+              className="leading-none text-white"
+              aria-label="Attendance Tracker"
+            >
+              <span className="flex flex-col text-[1.35em] font-extrabold leading-[1.05] tracking-tight">
+                <span>Attendance</span>
+                <span>Tracker</span>
+              </span>
+            </Link>
             <FacultyNav profile={profile} />
           </div>
         </div>

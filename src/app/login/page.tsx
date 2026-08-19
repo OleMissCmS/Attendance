@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card"
 import { getProfile } from "@/lib/auth"
 import { hasFacultyAppAccess } from "@/lib/faculty-email"
+import { ACCOUNT_LOCKED_MESSAGE } from "@/lib/login-lock"
 import { redirect } from "next/navigation"
 
 export default async function LoginPage({
@@ -37,7 +38,11 @@ export default async function LoginPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {error ? (
+            {error === "locked" ? (
+              <p className="text-sm text-destructive">
+                {ACCOUNT_LOCKED_MESSAGE}
+              </p>
+            ) : error ? (
               <p className="text-sm text-destructive">
                 Sign-in failed. Check your email and password.
               </p>

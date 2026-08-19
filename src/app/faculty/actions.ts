@@ -188,23 +188,43 @@ export async function addRoster(formData: FormData) {
     people = parseBlackboardRoster(raw)
   }
 
-  const rows = people.map((person) => ({
-    section_id: sectionId,
-    email_hash: hashEmail(person.email),
-    email_cipher: encryptPii(person.email),
-    name_cipher: encryptOptionalPii(person.name),
-    last_name_cipher: encryptOptionalPii(person.lastName),
-    first_name_cipher: encryptOptionalPii(person.firstName),
-    username_cipher: encryptPii(
-      usernameFromEmail(person.email) || person.username,
-    ),
-    student_id_cipher: encryptOptionalPii(person.studentId),
-  }))
+  const uniqueByHash = new Map<string, (typeof people)[number]>()
+  for (const person of people) {
+    const emailHash = hashEmail(person.email)
+    if (uniqueByHash.has(emailHash)) continue
+    uniqueByHash.set(emailHash, person)
+  }
+
+  const hashes = [...uniqueByHash.keys()]
+  const existingHashes = new Set<string>()
+  if (hashes.length) {
+    const { data: existing } = await supabase
+      .from("enrollments")
+      .select("email_hash")
+      .eq("section_id", sectionId)
+      .in("email_hash", hashes)
+    for (const row of existing ?? []) {
+      existingHashes.add(row.email_hash)
+    }
+  }
+
+  const rows = [...uniqueByHash.entries()]
+    .filter(([emailHash]) => !existingHashes.has(emailHash))
+    .map(([emailHash, person]) => ({
+      section_id: sectionId,
+      email_hash: emailHash,
+      email_cipher: encryptPii(person.email),
+      name_cipher: encryptOptionalPii(person.name),
+      last_name_cipher: encryptOptionalPii(person.lastName),
+      first_name_cipher: encryptOptionalPii(person.firstName),
+      username_cipher: encryptPii(
+        usernameFromEmail(person.email) || person.username,
+      ),
+      student_id_cipher: encryptOptionalPii(person.studentId),
+    }))
 
   if (rows.length) {
-    await supabase.from("enrollments").upsert(rows, {
-      onConflict: "section_id,email_hash",
-    })
+    await supabase.from("enrollments").insert(rows)
   }
   redirect(`/faculty/sections/${sectionId}`)
 }
@@ -365,4 +385,19 @@ export async function archiveCourse(formData: FormData) {
   await supabase.from("sections").update({ deleted_at: now }).eq("course_id", courseId).is("deleted_at", null)
   await supabase.from("courses").update({ deleted_at: now }).eq("id", courseId)
   redirect("/faculty/manage")
+}
+
+export async function resolveRosterAddRequest(formData: FormData) {
+  await requireFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  const requestId = Number(formData.get("request_id"))
+  const accept = String(formData.get("accept") ?? "") === "1"
+  if (!sectionId || !requestId) redirect("/faculty")
+  const { error } = await supabase.rpc("resolve_roster_add_request", {
+    p_request_id: requestId,
+    p_accept: accept,
+  })
+  if (error) redirect(`/faculty/sections/${sectionId}?error=request`)
+  redirect(`/faculty/sections/${sectionId}`)
 }

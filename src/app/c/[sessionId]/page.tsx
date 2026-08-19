@@ -1,4 +1,5 @@
 import { CheckInForm } from "@/components/check-in-form"
+import { RosterAddRequestForm } from "@/components/roster-add-request-form"
 import { SiteChrome } from "@/components/site-chrome"
 import { getRememberedEmail } from "@/lib/device"
 import { createClient } from "@/lib/supabase/server"
@@ -11,11 +12,22 @@ export default async function CheckInPage({
   searchParams,
 }: {
   params: Promise<{ sessionId: string }>
-  searchParams: Promise<{ t?: string; error?: string; done?: string; at?: string; test?: string }>
+  searchParams: Promise<{
+    t?: string
+    error?: string
+    done?: string
+    at?: string
+    test?: string
+    email?: string
+    requested?: string
+    request?: string
+  }>
 }) {
   const { sessionId } = await params
-  const { t, error, done, at, test } = await searchParams
-  const email = await getRememberedEmail()
+  const { t, error, done, at, test, email: emailParam, requested, request } =
+    await searchParams
+  const remembered = await getRememberedEmail()
+  const email = emailParam?.trim().toLowerCase() || remembered
   const supabase = await createClient()
 
   const { data, error: infoError } = await supabase.rpc("live_session_info", {
@@ -29,6 +41,13 @@ export default async function CheckInPage({
     section_label: string
     ended: boolean
   }
+  const notOnRoster = error === "not_roster"
+  const requestError =
+    request === "missing"
+      ? "Enter last name, first name, network ID, student ID, and email."
+      : request === "failed"
+        ? "Could not submit that request. Try again."
+        : undefined
 
   return (
     <SiteChrome profile={null}>
@@ -71,6 +90,23 @@ export default async function CheckInPage({
                 ) : null}
                 <p>This phone cannot check in a different student.</p>
               </div>
+            ) : requested === "1" ? (
+              <div
+                role="status"
+                className="space-y-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900"
+              >
+                <p className="font-extrabold">Roster addition requested.</p>
+                <p>
+                  Your instructor can add you to this section. If they accept,
+                  you will be marked present for this session.
+                </p>
+              </div>
+            ) : notOnRoster ? (
+              <RosterAddRequestForm
+                sessionId={sessionId}
+                email={email}
+                error={requestError}
+              />
             ) : info.ended ? (
               <p role="alert" className="text-sm text-destructive">
                 This session has ended.

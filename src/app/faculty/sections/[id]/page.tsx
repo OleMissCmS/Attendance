@@ -3,6 +3,7 @@ import {
   addRoster,
   endSession,
   removeEnrollment,
+  resolveRosterAddRequest,
   startSession,
 } from "@/app/faculty/actions"
 import { decryptEnrollment } from "@/lib/pii"
@@ -22,11 +23,14 @@ import { notFound } from "next/navigation"
 
 export default async function SectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const profile = await requireFaculty()
   const { id } = await params
+  const { error } = await searchParams
   const sectionId = Number(id)
   const supabase = await createClient()
 
@@ -45,7 +49,8 @@ export default async function SectionPage({
     notFound()
   }
 
-  const [{ data: enrollments }, { data: sessions }] = await Promise.all([
+  const [{ data: enrollments }, { data: sessions }, { data: addRequests }] =
+    await Promise.all([
     supabase
       .from("enrollments")
       .select("*")
@@ -56,6 +61,12 @@ export default async function SectionPage({
       .select("*")
       .eq("section_id", sectionId)
       .order("started_at", { ascending: false }),
+    supabase
+      .from("roster_add_requests")
+      .select("*")
+      .eq("section_id", sectionId)
+      .eq("status", "pending")
+      .order("created_at"),
   ])
 
   const live = sessions?.find((session) => !session.ended_at)
@@ -77,6 +88,68 @@ export default async function SectionPage({
           </h1>
           <p className="text-muted-foreground">{formatSectionLabel(section)}</p>
         </div>
+
+        {error === "request" ? (
+          <p role="alert" className="text-sm font-medium text-[#CE1126]">
+            Could not update that roster request. Try again.
+          </p>
+        ) : null}
+
+        {addRequests?.length ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Roster Add Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y text-sm">
+                {addRequests.map((row) => {
+                  const student = decryptEnrollment(row)
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap items-center justify-between gap-3 py-3"
+                    >
+                      <div>
+                        <p className="font-extrabold text-[#000D26]">
+                          {student.lastName && student.firstName
+                            ? `${student.lastName}, ${student.firstName}`
+                            : student.name || student.email}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {[
+                            student.username && `Network ID ${student.username}`,
+                            student.studentId && `ID ${student.studentId}`,
+                            student.email,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <form action={resolveRosterAddRequest}>
+                          <input type="hidden" name="section_id" value={sectionId} />
+                          <input type="hidden" name="request_id" value={row.id} />
+                          <input type="hidden" name="accept" value="1" />
+                          <Button type="submit" size="sm">
+                            Add
+                          </Button>
+                        </form>
+                        <form action={resolveRosterAddRequest}>
+                          <input type="hidden" name="section_id" value={sectionId} />
+                          <input type="hidden" name="request_id" value={row.id} />
+                          <input type="hidden" name="accept" value="0" />
+                          <Button type="submit" size="sm" variant="outline">
+                            Reject
+                          </Button>
+                        </form>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>

@@ -82,7 +82,7 @@ export function decryptEnrollment(row: {
   const firstName = decryptPii(row.first_name_cipher)
   const email = decryptPii(row.email_cipher)
   const username =
-    usernameFromEmail(email) || decryptPii(row.username_cipher)
+    decryptPii(row.username_cipher) || usernameFromEmail(email)
   const studentId = decryptPii(row.student_id_cipher)
   const name =
     decryptPii(row.name_cipher) ||

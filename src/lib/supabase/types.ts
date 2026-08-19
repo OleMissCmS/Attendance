@@ -233,6 +233,69 @@ export type Database = {
           },
         ]
       }
+      roster_add_requests: {
+        Row: {
+          created_at: string
+          email_cipher: string
+          email_hash: string
+          first_name_cipher: string | null
+          id: number
+          last_name_cipher: string | null
+          name_cipher: string | null
+          resolved_at: string | null
+          section_id: number
+          session_id: string
+          status: string
+          student_id_cipher: string | null
+          username_cipher: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_cipher: string
+          email_hash: string
+          first_name_cipher?: string | null
+          id?: never
+          last_name_cipher?: string | null
+          name_cipher?: string | null
+          resolved_at?: string | null
+          section_id: number
+          session_id: string
+          status?: string
+          student_id_cipher?: string | null
+          username_cipher?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_cipher?: string
+          email_hash?: string
+          first_name_cipher?: string | null
+          id?: never
+          last_name_cipher?: string | null
+          name_cipher?: string | null
+          resolved_at?: string | null
+          section_id?: number
+          session_id?: string
+          status?: string
+          student_id_cipher?: string | null
+          username_cipher?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_add_requests_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_add_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           course_id: number
@@ -276,6 +339,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clear_own_login_failures: { Args: never; Returns: undefined }
+      login_is_locked: { Args: { p_email: string }; Returns: boolean }
+      record_failed_login: { Args: { p_email: string }; Returns: boolean }
       check_in: {
         Args: {
           p_device_id: string
@@ -300,6 +366,23 @@ export type Database = {
       has_section_access: { Args: { p_section_id: number }; Returns: boolean }
       owns_course: { Args: { p_course_id: number }; Returns: boolean }
       owns_section: { Args: { p_section_id: number }; Returns: boolean }
+      request_roster_addition: {
+        Args: {
+          p_email_cipher: string
+          p_email_hash: string
+          p_first_name_cipher: string
+          p_last_name_cipher: string
+          p_name_cipher: string
+          p_session_id: string
+          p_student_id_cipher: string
+          p_username_cipher: string
+        }
+        Returns: undefined
+      }
+      resolve_roster_add_request: {
+        Args: { p_accept: boolean; p_request_id: number }
+        Returns: undefined
+      }
       session_display_code: { Args: { p_session_id: string }; Returns: Json }
       start_session: { Args: { p_section_id: number }; Returns: string }
       student_live_classes: {
