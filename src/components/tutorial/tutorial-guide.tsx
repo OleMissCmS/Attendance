@@ -19,6 +19,37 @@ function resolveTopicId(topicParam: string | null, hash: string): string {
   return TUTORIAL_TOPICS[0]?.id ?? "overview"
 }
 
+const LINK_CLASS =
+  "font-semibold text-[#CE1126] underline-offset-4 hover:underline"
+
+/** Renders text that may include [Label](/path) or [Label](mailto:…) links. */
+function RichText({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g)
+  return (
+    <>
+      {parts.map((part, index) => {
+        const match = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part)
+        if (!match) {
+          return <span key={`t-${index}`}>{part}</span>
+        }
+        const [, label, href] = match
+        if (href.startsWith("mailto:")) {
+          return (
+            <a key={`l-${index}`} href={href} className={LINK_CLASS}>
+              {label}
+            </a>
+          )
+        }
+        return (
+          <Link key={`l-${index}`} href={href} className={LINK_CLASS}>
+            {label}
+          </Link>
+        )
+      })}
+    </>
+  )
+}
+
 function TopicBody({ topic }: { topic: TutorialTopic }) {
   return (
     <article className="space-y-6">
@@ -26,19 +57,25 @@ function TopicBody({ topic }: { topic: TutorialTopic }) {
         <h1 className="text-2xl font-extrabold tracking-tight text-[#000D26] sm:text-3xl">
           {topic.title}
         </h1>
-        <p className="text-base text-muted-foreground">{topic.summary}</p>
+        <p className="text-base text-muted-foreground">
+          <RichText text={topic.summary} />
+        </p>
       </header>
 
       <div className="space-y-3 text-[0.95rem] leading-relaxed text-[#000D26]/90">
         {topic.paragraphs.map((paragraph) => (
-          <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+          <p key={paragraph.slice(0, 48)}>
+            <RichText text={paragraph} />
+          </p>
         ))}
       </div>
 
       {topic.steps && topic.steps.length > 0 ? (
         <ol className="list-decimal space-y-2 pl-5 text-[0.95rem] leading-relaxed text-[#000D26]/90">
           {topic.steps.map((step) => (
-            <li key={step.slice(0, 64)}>{step}</li>
+            <li key={step.slice(0, 64)}>
+              <RichText text={step} />
+            </li>
           ))}
         </ol>
       ) : null}
@@ -49,7 +86,9 @@ function TopicBody({ topic }: { topic: TutorialTopic }) {
           className="border-l-4 border-[#CE1126] bg-[#A1C6E7]/25 px-4 py-3"
         >
           <p className="text-sm font-bold text-[#000D26]">{callout.title}</p>
-          <p className="mt-1 text-sm text-[#000D26]/90">{callout.body}</p>
+          <p className="mt-1 text-sm text-[#000D26]/90">
+            <RichText text={callout.body} />
+          </p>
         </aside>
       ))}
 
@@ -57,10 +96,7 @@ function TopicBody({ topic }: { topic: TutorialTopic }) {
         <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
           {topic.links.map((link) => (
             <li key={link.href}>
-              <Link
-                href={link.href}
-                className="text-[#CE1126] underline-offset-4 hover:underline"
-              >
+              <Link href={link.href} className={LINK_CLASS}>
                 {link.label}
               </Link>
             </li>
@@ -82,7 +118,7 @@ function TopicBody({ topic }: { topic: TutorialTopic }) {
                 />
               </div>
               <figcaption className="text-sm text-muted-foreground">
-                {image.caption}
+                <RichText text={image.caption} />
               </figcaption>
             </figure>
           ))}

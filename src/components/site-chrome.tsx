@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { FacultyIdleLogout } from "@/components/faculty-idle-logout"
-import { FacultyNav, SignOutButton } from "@/components/faculty-nav"
+import { BrandTutorialLink, FacultyNav, SignOutButton } from "@/components/faculty-nav"
 import { hasFacultyAppAccess } from "@/lib/faculty-email"
 import type { Profile } from "@/lib/supabase/types"
 
@@ -20,10 +20,10 @@ export function SiteChrome({
           <div className="flex justify-end">
             {profile ? <SignOutButton /> : <span className="h-7" aria-hidden />}
           </div>
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex w-full items-end">
             <Link
               href={faculty ? "/faculty" : "/student"}
-              className="leading-none text-white"
+              className="shrink-0 leading-none text-white"
               aria-label="Attendance Tracker"
             >
               <span className="flex flex-col text-[1.35em] font-extrabold leading-[1.05] tracking-tight">
@@ -31,7 +31,12 @@ export function SiteChrome({
                 <span>Tracker</span>
               </span>
             </Link>
-            <FacultyNav profile={profile} />
+            <div className="min-w-2 grow-[15] basis-0" aria-hidden />
+            <BrandTutorialLink />
+            <div className="min-w-4 grow-[85] basis-0" aria-hidden />
+            <div className="shrink-0">
+              <FacultyNav profile={profile} />
+            </div>
           </div>
         </div>
         <div className="h-2.5 bg-[#CE1126]" />

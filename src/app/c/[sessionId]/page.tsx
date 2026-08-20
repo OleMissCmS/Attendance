@@ -137,7 +137,7 @@ export default async function CheckInPage({
             )}
             <p className="text-center text-sm">
               <Link href="/student" className="underline-offset-4 hover:underline">
-                Back to My classes
+                Back to Student check-in
               </Link>
             </p>
           </CardContent>

@@ -71,7 +71,7 @@ function deviceFlagLabel(flag: {
     return "New phone after 4th class"
   }
   if (flag.flag_type === "device_conflict") {
-    return "Phone linked to another student"
+    return "Phone already used by another student"
   }
   return flag.flag_type
 }
@@ -412,7 +412,7 @@ export default async function ReportsPage({
           `${record.session_id}:${record.email_hash}`,
         )
         const labels: string[] = []
-        if (record.is_incognito) labels.push("Incognito")
+        if (record.is_incognito) labels.push("Private/incognito browser")
         if (lateFlag) labels.push(deviceFlagLabel(lateFlag))
         const hasLate = Boolean(lateFlag)
         const hasIncognito = Boolean(record.is_incognito)
@@ -926,14 +926,42 @@ export default async function ReportsPage({
               </CardContent>
             </Card>
             <Card className={reportCardClass}>
-              <CardHeader className={altReportHeaderClass}>
-                <div>
+              <CardHeader className="flex flex-col gap-2 bg-[#A1C6E7] px-4 py-2 text-[#000D26] sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 max-w-3xl">
                   <CardTitle className={altReportTitleClass}>Flags</CardTitle>
                   <p className={altReportHintClass}>
-                    Device and incognito flags from check-ins. Phone-reuse
-                    conflicts show the linked phone email and the attempted
-                    sign-in email. Absent students have no check-in row.
+                    Raised at check-in when something looks unusual. Absent
+                    students have no row.
                   </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#000D26]/75">
+                    <li>
+                      <span className="font-medium text-[#000D26]">
+                        Private/incognito browser
+                      </span>
+                      {" — "}
+                      Browser looked like a private/incognito window. Check-in
+                      still counts.
+                    </li>
+                    <li>
+                      <span className="font-medium text-[#000D26]">
+                        New phone after 4th class
+                      </span>
+                      {" — "}
+                      This phone has never checked this student in before, and
+                      the section already has 4 or more earlier meetings.
+                      Check-in still counts.
+                    </li>
+                    <li>
+                      <span className="font-medium text-[#000D26]">
+                        Phone already used by another student
+                      </span>
+                      {" — "}
+                      Phone is already tied to a different email, or already
+                      checked in someone else for this session. Check-in is
+                      blocked. Linked phone email and Attempted sign-in email
+                      show the mismatch.
+                    </li>
+                  </ul>
                 </div>
                 <div className={altReportActionsClass}>
                   <ReportFlagsFilter

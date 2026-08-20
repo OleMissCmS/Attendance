@@ -30,6 +30,23 @@ export function SignOutButton() {
   )
 }
 
+/** Small Tutorial control next to the brand; not part of the main nav list. */
+export function BrandTutorialLink() {
+  const pathname = usePathname()
+  const active = pathname.startsWith("/tutorial")
+  return (
+    <Link
+      href="/tutorial"
+      className={`shrink-0 self-end text-[0.7em] font-semibold leading-none text-white/90 transition-colors hover:text-[#A1C6E7] ${
+        active ? "text-[#A1C6E7] underline decoration-1 underline-offset-4" : ""
+      }`}
+      aria-current={active ? "page" : undefined}
+    >
+      Tutorial
+    </Link>
+  )
+}
+
 export function FacultyNav({
   profile,
 }: {
@@ -81,15 +98,9 @@ export function FacultyNav({
           label: "Account settings",
           match: (path: string) => path.startsWith("/faculty/account"),
         },
-        {
-          href: "/tutorial",
-          label: "Tutorial",
-          match: (path: string) => path.startsWith("/tutorial"),
-        },
       ]
     : [
-        { href: "/student", label: "My Classes", match: (path: string) => path.startsWith("/student") },
-        { href: "/tutorial", label: "Tutorial", match: (path: string) => path.startsWith("/tutorial") },
+        { href: "/student", label: "Student", match: (path: string) => path.startsWith("/student") },
         { href: "/login", label: "Faculty Sign In", match: (path: string) => path.startsWith("/login") },
       ]
 

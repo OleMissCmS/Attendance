@@ -33,7 +33,7 @@ export function AppHeader({
           ) : (
             <nav className="flex gap-4 text-sm text-primary-foreground/80">
               <Link href="/student" className="hover:text-primary-foreground">
-                My classes
+                Student
               </Link>
             </nav>
           )}

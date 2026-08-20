@@ -175,7 +175,8 @@ export function SessionDisplay({
           </p>
           <p className="mt-3 max-w-md text-sm text-white/70">
             A new code appears every 10 seconds. Each code remains valid for 30
-            seconds. Scan the QR or open My classes and enter this code.
+            seconds. Scan the QR code, then enter this classroom code to check
+            in.
           </p>
           {error ? (
             <p role="alert" className="mt-3 text-red-400">

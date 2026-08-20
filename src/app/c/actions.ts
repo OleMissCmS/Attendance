@@ -120,5 +120,5 @@ export async function saveStudentEmail(formData: FormData) {
   const email = normalizeEmail(String(formData.get("email") ?? ""))
   if (!email.includes("@")) redirect("/student?error=email")
   await rememberEmail(email)
-  redirect("/student")
+  redirect("/student?saved=1")
 }
