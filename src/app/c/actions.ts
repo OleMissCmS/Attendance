@@ -28,7 +28,7 @@ export async function submitCheckIn(formData: FormData) {
   const isIncognito = String(formData.get("incognito") ?? "") === "1"
   const deviceId = await getOrCreateDeviceId()
 
-  const { error } = await supabase.rpc("check_in", {
+  const { data, error } = await supabase.rpc("check_in", {
     p_session_id: sessionId,
     p_token: token,
     p_email_hash: hashEmail(email),
@@ -38,9 +38,14 @@ export async function submitCheckIn(formData: FormData) {
     p_is_test: allowTestStudentCheckIn(email),
   })
 
-  if (error) {
+  const result = data as { ok?: boolean; error?: string } | null
+  const failedMessage =
+    error?.message ||
+    (result && result.ok === false ? result.error || "Check-in failed" : null)
+
+  if (failedMessage) {
     const params = new URLSearchParams()
-    if (/not on this roster/i.test(error.message)) {
+    if (/not on this roster/i.test(failedMessage)) {
       // Presence already proved via a valid classroom code; do not keep `t=`
       // (expired codes) on the URL or re-bind this flow to the 30s window.
       await grantRosterAddEligibility(sessionId)
@@ -48,7 +53,7 @@ export async function submitCheckIn(formData: FormData) {
       if (email) params.set("email", email)
     } else {
       if (token) params.set("t", token)
-      params.set("error", error.message)
+      params.set("error", failedMessage)
     }
     redirect(`/c/${sessionId}?${params.toString()}`)
   }

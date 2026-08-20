@@ -70,10 +70,7 @@ function deviceFlagLabel(flag: {
     return "New phone after 4th class"
   }
   if (flag.flag_type === "device_conflict") {
-    const linked = decryptPii(flag.bound_email_cipher) || "(unknown linked student)"
-    const attempted =
-      decryptPii(flag.attempted_email_cipher) || "(unknown attempted email)"
-    return `Phone linked to ${linked}; attempted check-in as ${attempted}`
+    return "Phone linked to another student"
   }
   return flag.flag_type
 }
@@ -257,6 +254,8 @@ export default async function ReportsPage({
     checked_in_at: string
     flags: string
     flagged: boolean
+    linkedPhoneEmail: string
+    attemptedSignInEmail: string
   })[] = []
 
   const sessionLogRows =
@@ -424,6 +423,8 @@ export default async function ReportsPage({
           checked_in_at: formatCentralDateTime(record.checked_in_at),
           flags: combineFlagLabels(labels),
           flagged,
+          linkedPhoneEmail: "—",
+          attemptedSignInEmail: "—",
         })
       }
     }
@@ -443,26 +444,32 @@ export default async function ReportsPage({
     const section = sections.find((item) => item.id === session.section_id)
     if (!section) continue
     const course = courseFromRelation(section.courses)
+    const linkedPhoneEmail =
+      decryptPii(flag.bound_email_cipher) || "(unknown)"
+    const attemptedSignInEmail =
+      decryptPii(flag.attempted_email_cipher) || "(unknown)"
     const enrollment =
       (enrollments ?? []).find(
         (row) =>
           row.section_id === section.id &&
-          (row.email_hash === flag.attempted_email_hash ||
-            row.email_hash === flag.bound_email_hash),
-      ) ?? null
+          row.email_hash === flag.bound_email_hash,
+      ) ??
+      (enrollments ?? []).find(
+        (row) =>
+          row.section_id === section.id &&
+          row.email_hash === flag.attempted_email_hash,
+      ) ??
+      null
     const student = enrollment
       ? decryptEnrollment(enrollment)
-      : (() => {
-          const attemptedEmail = decryptPii(flag.attempted_email_cipher)
-          return {
-            lastName: "",
-            firstName: "",
-            username: usernameFromEmail(attemptedEmail) || attemptedEmail,
-            studentId: "",
-            email: attemptedEmail,
-            name: attemptedEmail,
-          }
-        })()
+      : {
+          lastName: "",
+          firstName: "",
+          username: usernameFromEmail(linkedPhoneEmail) || linkedPhoneEmail,
+          studentId: "",
+          email: linkedPhoneEmail,
+          name: linkedPhoneEmail,
+        }
     const timing = formatSessionTiming(session.started_at, session.ended_at)
     flagRows.push({
       course: courseLabel(course),
@@ -475,6 +482,8 @@ export default async function ReportsPage({
       checked_in_at: formatCentralDateTime(flag.created_at),
       flags: deviceFlagLabel(flag),
       flagged: true,
+      linkedPhoneEmail,
+      attemptedSignInEmail,
     })
   }
 
@@ -899,8 +908,8 @@ export default async function ReportsPage({
                   <CardTitle className={altReportTitleClass}>Flags</CardTitle>
                   <p className={altReportHintClass}>
                     Device and incognito flags from check-ins. Phone-reuse
-                    conflicts list both the linked student and the attempted
-                    email. Absent students have no check-in row.
+                    conflicts show the linked phone email and the attempted
+                    sign-in email. Absent students have no check-in row.
                   </p>
                 </div>
                 <div className={altReportActionsClass}>
@@ -926,6 +935,8 @@ export default async function ReportsPage({
                       "Session date",
                       "Checked in",
                       "Flags",
+                      "Linked phone email",
+                      "Attempted sign-in email",
                     ]}
                     rows={flagRows.map((row) => [
                       row.course,
@@ -937,6 +948,8 @@ export default async function ReportsPage({
                       row.session_date,
                       row.checked_in_at,
                       row.flags,
+                      row.linkedPhoneEmail,
+                      row.attemptedSignInEmail,
                     ])}
                   />
                 </div>
@@ -949,6 +962,8 @@ export default async function ReportsPage({
                       <TableHead>Session date</TableHead>
                       <TableHead>Checked in</TableHead>
                       <TableHead>Flags</TableHead>
+                      <TableHead>Linked phone email</TableHead>
+                      <TableHead>Attempted sign-in email</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -969,11 +984,13 @@ export default async function ReportsPage({
                           <TableCell>{row.session_date}</TableCell>
                           <TableCell>{row.checked_in_at}</TableCell>
                           <TableCell>{row.flags}</TableCell>
+                          <TableCell>{row.linkedPhoneEmail}</TableCell>
+                          <TableCell>{row.attemptedSignInEmail}</TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={11}>
                           No check-ins match these Session log filters.
                         </TableCell>
                       </TableRow>

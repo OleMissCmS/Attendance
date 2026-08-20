@@ -29,13 +29,25 @@ export type ReportLiveValues = Partial<
   Record<ReportFilterKey, string | null | undefined>
 >
 
+/** Survives client remounts when report search params change. */
+let pendingReportScrollY: number | null = null
+
 function useReportLiveNav(current: ReportLiveValues) {
   const router = useRouter()
   const pathname = usePathname()
 
+  useEffect(() => {
+    if (pendingReportScrollY == null) return
+    const y = pendingReportScrollY
+    pendingReportScrollY = null
+    window.scrollTo(0, y)
+  })
+
   function navigate(patch: ReportLiveValues) {
     const qs = buildReportQuery({ ...current, ...patch })
-    router.push(qs ? `${pathname}?${qs}` : pathname)
+    const href = qs ? `${pathname}?${qs}` : pathname
+    pendingReportScrollY = window.scrollY
+    router.replace(href, { scroll: false })
   }
 
   return navigate
