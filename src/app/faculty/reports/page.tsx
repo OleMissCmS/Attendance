@@ -1,7 +1,8 @@
 import { SiteChrome } from "@/components/site-chrome"
 import { DownloadButton } from "@/components/download-button"
 import {
-  ReportLiveAltControls,
+  ReportAtRiskThreshold,
+  ReportFlagsFilter,
   ReportLiveFilters,
 } from "@/components/report-live-filters"
 import { requireFaculty } from "@/lib/auth"
@@ -44,6 +45,11 @@ const reportHeaderClass =
   "flex flex-col gap-2 bg-[#000D26] px-4 py-2 text-white sm:flex-row sm:items-center sm:justify-between"
 const reportTitleClass = "text-white"
 const reportHintClass = "mt-1 text-sm text-white/75"
+const altReportHeaderClass =
+  "flex flex-col gap-2 bg-[#A1C6E7] px-4 py-2 text-[#000D26] sm:flex-row sm:items-center sm:justify-between"
+const altReportTitleClass = "text-[#000D26]"
+const altReportHintClass = "mt-1 text-sm text-[#000D26]/75"
+const altReportActionsClass = "flex flex-wrap items-center gap-3"
 
 function courseFromRelation(value: CourseRef | CourseRef[] | null | undefined) {
   const course = Array.isArray(value) ? value[0] : value
@@ -733,23 +739,10 @@ export default async function ReportsPage({
             </p>
           </CardHeader>
           <CardContent className="space-y-8 pt-6">
-            <ReportLiveAltControls
-              current={{
-                course: filters.course,
-                section: filters.section,
-                session: sessionId,
-                from: filters.from,
-                to: filters.to,
-                student: filters.student,
-                flags: flagFilter,
-                streak: filters.streak,
-              }}
-            />
             <Card className={reportCardClass}>
-              <CardHeader className={reportHeaderClass}>
-                <CardTitle className={reportTitleClass}>No Show report</CardTitle>
+              <CardHeader className={altReportHeaderClass}>
+                <CardTitle className={altReportTitleClass}>No Show report</CardTitle>
                 <DownloadButton
-                  onNavy
                   filename="no-show-report.csv"
                   label="Download CSV"
                   headers={[
@@ -810,40 +803,53 @@ export default async function ReportsPage({
               </CardContent>
             </Card>
             <Card className={reportCardClass}>
-              <CardHeader className={reportHeaderClass}>
+              <CardHeader className={altReportHeaderClass}>
                 <div>
-                  <CardTitle className={reportTitleClass}>At Risk report</CardTitle>
-                  <p className={reportHintClass}>
+                  <CardTitle className={altReportTitleClass}>At Risk report</CardTitle>
+                  <p className={altReportHintClass}>
                     Students with {streakThreshold} or more consecutive absences
                     in a section. Streaks are not mixed across courses.
                   </p>
                 </div>
-                <DownloadButton
-                  onNavy
-                  filename="at-risk-report.csv"
-                  label="Download CSV"
-                  headers={[
-                    "Course",
-                    "Section",
-                    ...STUDENT_HEADERS,
-                    "Longest streak",
-                    "Current streak",
-                    "Attended",
-                    "Missed",
-                  ]}
-                  rows={atRiskRows.map((row) => [
-                    row.course,
-                    row.section,
-                    row.lastName,
-                    row.firstName,
-                    row.username,
-                    row.studentId,
-                    String(row.streak),
-                    String(row.current_streak),
-                    String(row.attended),
-                    String(row.missed),
-                  ])}
-                />
+                <div className={altReportActionsClass}>
+                  <ReportAtRiskThreshold
+                    current={{
+                      course: filters.course,
+                      section: filters.section,
+                      session: sessionId,
+                      from: filters.from,
+                      to: filters.to,
+                      student: filters.student,
+                      flags: flagFilter,
+                      streak: filters.streak,
+                    }}
+                  />
+                  <DownloadButton
+                    filename="at-risk-report.csv"
+                    label="Download CSV"
+                    headers={[
+                      "Course",
+                      "Section",
+                      ...STUDENT_HEADERS,
+                      "Longest streak",
+                      "Current streak",
+                      "Attended",
+                      "Missed",
+                    ]}
+                    rows={atRiskRows.map((row) => [
+                      row.course,
+                      row.section,
+                      row.lastName,
+                      row.firstName,
+                      row.username,
+                      row.studentId,
+                      String(row.streak),
+                      String(row.current_streak),
+                      String(row.attended),
+                      String(row.missed),
+                    ])}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="min-w-0">
                 <Table containerClassName={reportTableScroll}>
@@ -888,39 +894,52 @@ export default async function ReportsPage({
               </CardContent>
             </Card>
             <Card className={reportCardClass}>
-              <CardHeader className={reportHeaderClass}>
+              <CardHeader className={altReportHeaderClass}>
                 <div>
-                  <CardTitle className={reportTitleClass}>Flags</CardTitle>
-                  <p className={reportHintClass}>
+                  <CardTitle className={altReportTitleClass}>Flags</CardTitle>
+                  <p className={altReportHintClass}>
                     Device and incognito flags from check-ins. Phone-reuse
                     conflicts list both the linked student and the attempted
                     email. Absent students have no check-in row.
                   </p>
                 </div>
-                <DownloadButton
-                  onNavy
-                  filename="attendance-flags.csv"
-                  label="Download CSV"
-                  headers={[
-                    "Course",
-                    "Section",
-                    ...STUDENT_HEADERS,
-                    "Session date",
-                    "Checked in",
-                    "Flags",
-                  ]}
-                  rows={flagRows.map((row) => [
-                    row.course,
-                    row.section,
-                    row.lastName,
-                    row.firstName,
-                    row.username,
-                    row.studentId,
-                    row.session_date,
-                    row.checked_in_at,
-                    row.flags,
-                  ])}
-                />
+                <div className={altReportActionsClass}>
+                  <ReportFlagsFilter
+                    current={{
+                      course: filters.course,
+                      section: filters.section,
+                      session: sessionId,
+                      from: filters.from,
+                      to: filters.to,
+                      student: filters.student,
+                      flags: flagFilter,
+                      streak: filters.streak,
+                    }}
+                  />
+                  <DownloadButton
+                    filename="attendance-flags.csv"
+                    label="Download CSV"
+                    headers={[
+                      "Course",
+                      "Section",
+                      ...STUDENT_HEADERS,
+                      "Session date",
+                      "Checked in",
+                      "Flags",
+                    ]}
+                    rows={flagRows.map((row) => [
+                      row.course,
+                      row.section,
+                      row.lastName,
+                      row.firstName,
+                      row.username,
+                      row.studentId,
+                      row.session_date,
+                      row.checked_in_at,
+                      row.flags,
+                    ])}
+                  />
+                </div>
               </CardHeader>
               <CardContent className="min-w-0">
                 <Table containerClassName={reportTableScroll}>
@@ -964,16 +983,15 @@ export default async function ReportsPage({
               </CardContent>
             </Card>
             <Card className={reportCardClass}>
-              <CardHeader className={reportHeaderClass}>
+              <CardHeader className={altReportHeaderClass}>
                 <div>
-                  <CardTitle className={reportTitleClass}>Session log</CardTitle>
-                  <p className={reportHintClass}>
+                  <CardTitle className={altReportTitleClass}>Session log</CardTitle>
+                  <p className={altReportHintClass}>
                     How long each check-in session was open. Flags are listed
                     above, not on the attendance grid.
                   </p>
                 </div>
                 <DownloadButton
-                  onNavy
                   filename="session-log.csv"
                   label="Download CSV"
                   headers={[

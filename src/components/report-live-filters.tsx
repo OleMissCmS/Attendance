@@ -14,9 +14,6 @@ import {
   type ReportFilterKey,
 } from "@/lib/report-filters"
 
-const selectClass =
-  "h-9 w-full rounded-md border bg-background px-3 text-sm"
-
 type CourseOption = { id: number; code: string; name: string }
 
 type SectionOption = {
@@ -131,7 +128,12 @@ export function ReportLiveFilters({
   )
 }
 
-export function ReportLiveAltControls({
+const headerControlLabelClass =
+  "whitespace-nowrap text-sm font-medium text-[#000D26]"
+const headerControlInputClass =
+  "h-9 rounded-md border border-[#000D26]/25 bg-white px-3 text-sm text-[#000D26]"
+
+export function ReportAtRiskThreshold({
   current,
 }: {
   current: ReportLiveValues
@@ -139,38 +141,50 @@ export function ReportLiveAltControls({
   const navigate = useReportLiveNav(current)
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className="space-y-1">
-        <Label htmlFor="streak">
-          At Risk: consecutive missed classes threshold
-        </Label>
-        <Input
-          id="streak"
-          name="streak"
-          type="number"
-          min={1}
-          defaultValue={current.streak || "3"}
-          placeholder="(e.g. 3)"
-          className="max-w-32"
-          onChange={(event) => navigate({ streak: event.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="flags">Flags</Label>
-        <select
-          id="flags"
-          name="flags"
-          defaultValue={current.flags || "all"}
-          className={selectClass}
-          onChange={(event) => navigate({ flags: event.target.value })}
-        >
-          <option value="all">All</option>
-          <option value="flagged">Flagged only</option>
-          <option value="incognito">Incognito</option>
-          <option value="late">New phone after 4th class</option>
-          <option value="conflict">Phone linked to another student</option>
-        </select>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <Label htmlFor="streak" className={headerControlLabelClass}>
+        Threshold
+      </Label>
+      <Input
+        id="streak"
+        name="streak"
+        type="number"
+        min={1}
+        defaultValue={current.streak || "3"}
+        placeholder="3"
+        title="Consecutive missed classes threshold"
+        className={`${headerControlInputClass} w-20`}
+        onChange={(event) => navigate({ streak: event.target.value })}
+      />
+    </div>
+  )
+}
+
+export function ReportFlagsFilter({
+  current,
+}: {
+  current: ReportLiveValues
+}) {
+  const navigate = useReportLiveNav(current)
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Label htmlFor="flags" className={headerControlLabelClass}>
+        Show
+      </Label>
+      <select
+        id="flags"
+        name="flags"
+        defaultValue={current.flags || "all"}
+        className={`${headerControlInputClass} w-auto min-w-[12rem]`}
+        onChange={(event) => navigate({ flags: event.target.value })}
+      >
+        <option value="all">All</option>
+        <option value="flagged">Flagged only</option>
+        <option value="incognito">Incognito</option>
+        <option value="late">New phone after 4th class</option>
+        <option value="conflict">Phone linked to another student</option>
+      </select>
     </div>
   )
 }
