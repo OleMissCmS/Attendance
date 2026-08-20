@@ -4,6 +4,7 @@ import { SiteChrome } from "@/components/site-chrome"
 import { getRememberedEmail } from "@/lib/device"
 import { hasRosterAddEligibility } from "@/lib/roster-add-eligibility"
 import { createClient } from "@/lib/supabase/server"
+import { formatCentralTime } from "@/lib/time"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -92,12 +93,7 @@ export default async function CheckInPage({
                 <p className="font-extrabold">You are checked in.</p>
                 <p>
                   Checked in to {info.course_code} · {info.section_label}
-                  {at
-                    ? ` at ${new Date(at).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}.`
-                    : "."}
+                  {at ? ` at ${formatCentralTime(at)}.` : "."}
                 </p>
                 {test === "1" ? (
                   <p>

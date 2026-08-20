@@ -1,3 +1,5 @@
+import { centralDateInput, formatCentralMonthDay } from "@/lib/time"
+
 export function maxConsecutiveAbsences(
   sessionsOldestFirst: { id: string }[],
   presentSessionIds: Set<string>,
@@ -55,7 +57,7 @@ export type FacultyStats = {
 }
 
 function sessionDayKey(startedAt: string) {
-  return startedAt.slice(0, 10)
+  return centralDateInput(startedAt)
 }
 
 export function buildFacultyStats(input: {
@@ -167,10 +169,7 @@ export function buildFacultyStats(input: {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => ({
       date,
-      label: new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
+      label: formatCentralMonthDay(`${date}T12:00:00`),
       rate: values.expected ? values.present / values.expected : 0,
     }))
 

@@ -11,7 +11,7 @@ import {
 } from "@/lib/attendance-stats"
 import { buildBlackboardGradeCenter } from "@/lib/blackboard-export"
 import { loadAuthorizedCourses } from "@/lib/faculty-access"
-import { decryptEnrollment } from "@/lib/pii"
+import { decryptEnrollment, decryptPii, usernameFromEmail } from "@/lib/pii"
 import { formatSectionLabel } from "@/lib/section-label"
 import { formatSessionTiming } from "@/lib/session-times"
 import {
@@ -19,6 +19,7 @@ import {
   studentLookupHashes,
 } from "@/lib/student-identity"
 import { createClient } from "@/lib/supabase/server"
+import { formatCentralDateTime } from "@/lib/time"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -54,16 +55,25 @@ function courseLabel(course: CourseRef | null) {
   return course ? `${course.code} ${course.name}` : ""
 }
 
-function flagLabel(row: {
-  is_incognito?: boolean
-  flagged_late_device?: boolean
-  is_new_device?: boolean
+function deviceFlagLabel(flag: {
+  flag_type: string
+  bound_email_cipher: string
+  attempted_email_cipher: string
 }) {
-  const flags: string[] = []
-  if (row.is_incognito) flags.push("Incognito")
-  if (row.flagged_late_device) flags.push("New phone after 4th class")
-  else if (row.is_new_device) flags.push("First check-in on this phone")
-  return flags.join("; ")
+  if (flag.flag_type === "late_device") {
+    return "New phone after 4th class"
+  }
+  if (flag.flag_type === "device_conflict") {
+    const linked = decryptPii(flag.bound_email_cipher) || "(unknown linked student)"
+    const attempted =
+      decryptPii(flag.attempted_email_cipher) || "(unknown attempted email)"
+    return `Phone linked to ${linked}; attempted check-in as ${attempted}`
+  }
+  return flag.flag_type
+}
+
+function combineFlagLabels(parts: string[]) {
+  return parts.filter(Boolean).join("; ") || "—"
 }
 
 function studentLookupFromFilter(value: string) {
@@ -178,6 +188,37 @@ export default async function ReportsPage({
         .select("*")
         .in("session_id", sessionIds)
     : { data: [] }
+
+  const { data: deviceFlags } = sessionIds.length
+    ? await supabase
+        .from("attendance_flags")
+        .select("*")
+        .in("session_id", sessionIds)
+    : { data: [] as {
+        attempted_email_cipher: string
+        attempted_email_hash: string
+        bound_email_cipher: string
+        bound_email_hash: string
+        created_at: string
+        device_id: string | null
+        flag_type: string
+        id: number
+        section_id: number
+        session_id: string
+      }[] }
+
+  const lateFlagsByKey = new Map<
+    string,
+    NonNullable<typeof deviceFlags>[number]
+  >()
+  const conflictFlags: NonNullable<typeof deviceFlags> = []
+  for (const flag of deviceFlags ?? []) {
+    if (flag.flag_type === "late_device") {
+      lateFlagsByKey.set(`${flag.session_id}:${flag.attempted_email_hash}`, flag)
+    } else if (flag.flag_type === "device_conflict") {
+      conflictFlags.push(flag)
+    }
+  }
 
   const presentKeys = new Set(
     (records ?? []).map((record) => `${record.session_id}:${record.email_hash}`),
@@ -357,22 +398,78 @@ export default async function ReportsPage({
             item.email_hash === enrollment.email_hash,
         )
         if (!record) continue
-        const flagged = Boolean(
-          record.is_incognito || record.flagged_late_device,
+        const lateFlag = lateFlagsByKey.get(
+          `${record.session_id}:${record.email_hash}`,
         )
+        const labels: string[] = []
+        if (record.is_incognito) labels.push("Incognito")
+        if (lateFlag) labels.push(deviceFlagLabel(lateFlag))
+        const hasLate = Boolean(lateFlag)
+        const hasIncognito = Boolean(record.is_incognito)
+        const flagged = hasIncognito || hasLate
         if (flagFilter === "flagged" && !flagged) continue
-        if (flagFilter === "incognito" && !record.is_incognito) continue
-        if (flagFilter === "late" && !record.flagged_late_device) continue
+        if (flagFilter === "incognito" && !hasIncognito) continue
+        if (flagFilter === "late" && !hasLate) continue
+        if (flagFilter === "conflict") continue
         const timing = formatSessionTiming(session.started_at, session.ended_at)
         flagRows.push({
           ...identity,
           session_date: timing.date,
-          checked_in_at: new Date(record.checked_in_at).toLocaleString(),
-          flags: flagLabel(record) || "—",
+          checked_in_at: formatCentralDateTime(record.checked_in_at),
+          flags: combineFlagLabels(labels),
           flagged,
         })
       }
     }
+  }
+
+  for (const flag of conflictFlags) {
+    if (
+      studentHashes.length &&
+      !matchesStudentLookup(flag.bound_email_hash, studentHashes) &&
+      !matchesStudentLookup(flag.attempted_email_hash, studentHashes)
+    ) {
+      continue
+    }
+    if (flagFilter === "incognito" || flagFilter === "late") continue
+    const session = sessions?.find((item) => item.id === flag.session_id)
+    if (!session) continue
+    const section = sections.find((item) => item.id === session.section_id)
+    if (!section) continue
+    const course = courseFromRelation(section.courses)
+    const enrollment =
+      (enrollments ?? []).find(
+        (row) =>
+          row.section_id === section.id &&
+          (row.email_hash === flag.attempted_email_hash ||
+            row.email_hash === flag.bound_email_hash),
+      ) ?? null
+    const student = enrollment
+      ? decryptEnrollment(enrollment)
+      : (() => {
+          const attemptedEmail = decryptPii(flag.attempted_email_cipher)
+          return {
+            lastName: "",
+            firstName: "",
+            username: usernameFromEmail(attemptedEmail) || attemptedEmail,
+            studentId: "",
+            email: attemptedEmail,
+            name: attemptedEmail,
+          }
+        })()
+    const timing = formatSessionTiming(session.started_at, session.ended_at)
+    flagRows.push({
+      course: courseLabel(course),
+      section: formatSectionLabel(section),
+      lastName: student.lastName,
+      firstName: student.firstName,
+      username: student.username,
+      studentId: student.studentId,
+      session_date: timing.date,
+      checked_in_at: formatCentralDateTime(flag.created_at),
+      flags: deviceFlagLabel(flag),
+      flagged: true,
+    })
   }
 
   noShowRows.sort(
@@ -795,8 +892,9 @@ export default async function ReportsPage({
                 <div>
                   <CardTitle className={reportTitleClass}>Flags</CardTitle>
                   <p className={reportHintClass}>
-                    Device and incognito flags from check-ins. Absent students
-                    have no check-in row.
+                    Device and incognito flags from check-ins. Phone-reuse
+                    conflicts list both the linked student and the attempted
+                    email. Absent students have no check-in row.
                   </p>
                 </div>
                 <DownloadButton

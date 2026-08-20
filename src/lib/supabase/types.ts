@@ -12,6 +12,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_flags: {
+        Row: {
+          attempted_email_cipher: string
+          attempted_email_hash: string
+          bound_email_cipher: string
+          bound_email_hash: string
+          created_at: string
+          device_id: string | null
+          flag_type: string
+          id: number
+          section_id: number
+          session_id: string
+        }
+        Insert: {
+          attempted_email_cipher: string
+          attempted_email_hash: string
+          bound_email_cipher: string
+          bound_email_hash: string
+          created_at?: string
+          device_id?: string | null
+          flag_type: string
+          id?: never
+          section_id: number
+          session_id: string
+        }
+        Update: {
+          attempted_email_cipher?: string
+          attempted_email_hash?: string
+          bound_email_cipher?: string
+          bound_email_hash?: string
+          created_at?: string
+          device_id?: string | null
+          flag_type?: string
+          id?: never
+          section_id?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_flags_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_flags_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           checked_in_at: string

@@ -168,6 +168,7 @@ export function ReportLiveAltControls({
           <option value="flagged">Flagged only</option>
           <option value="incognito">Incognito</option>
           <option value="late">New phone after 4th class</option>
+          <option value="conflict">Phone linked to another student</option>
         </select>
       </div>
     </div>
