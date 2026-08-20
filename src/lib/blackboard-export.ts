@@ -31,7 +31,7 @@ export function buildBlackboardGradeCenter(options: {
   sessions: { id: string; started_at: string }[]
   presentKeys: Set<string>
   studentHashes?: string[]
-}): { headers: string[]; rows: string[][] } {
+}): { headers: string[]; rows: string[][]; emailHashes: string[]; sessionIds: string[] } {
   const sessions = [...options.sessions].sort((a, b) =>
     a.started_at.localeCompare(b.started_at),
   )
@@ -48,27 +48,36 @@ export function buildBlackboardGradeCenter(options: {
   ]
 
   const lookup = options.studentHashes ?? []
-  const rows = options.enrollments
+  const people = options.enrollments
     .filter((row) =>
       lookup.length ? lookup.includes(row.email_hash) : true,
     )
     .map((row) => {
       const student: StudentIdentity = decryptEnrollment(row)
-      return [
-        student.lastName,
-        student.firstName,
-        student.username,
-        student.studentId,
-        ...sessions.map((session) =>
-          options.presentKeys.has(`${session.id}:${row.email_hash}`)
-            ? "1"
-            : "0",
-        ),
-      ]
+      return { row, student }
     })
     .sort(
-      (a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]),
+      (a, b) =>
+        a.student.lastName.localeCompare(b.student.lastName) ||
+        a.student.firstName.localeCompare(b.student.firstName),
     )
 
-  return { headers, rows }
+  const rows = people.map(({ row, student }) => [
+    student.lastName,
+    student.firstName,
+    student.username,
+    student.studentId,
+    ...sessions.map((session) =>
+      options.presentKeys.has(`${session.id}:${row.email_hash}`)
+        ? "1"
+        : "0",
+    ),
+  ])
+
+  return {
+    headers,
+    rows,
+    emailHashes: people.map(({ row }) => row.email_hash),
+    sessionIds: sessions.map((session) => session.id),
+  }
 }

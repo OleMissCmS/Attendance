@@ -42,6 +42,10 @@ export default async function LoginPage({
               <p className="text-sm text-destructive">
                 {ACCOUNT_LOCKED_MESSAGE}
               </p>
+            ) : error === "idle" ? (
+              <p className="text-sm text-destructive">
+                You were signed out after 5 hours without activity.
+              </p>
             ) : error ? (
               <p className="text-sm text-destructive">
                 Sign-in failed. Check your email and password.

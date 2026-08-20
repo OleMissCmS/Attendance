@@ -21,6 +21,27 @@ export async function signOut() {
   redirect("/login")
 }
 
+export async function setSessionAttendance(input: {
+  sessionId: string
+  emailHash: string
+  present: boolean
+}): Promise<{ error?: string }> {
+  await requireFaculty()
+  const sessionId = input.sessionId.trim()
+  const emailHash = input.emailHash.trim()
+  if (!sessionId || emailHash.length < 32) {
+    return { error: "Invalid attendance update." }
+  }
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("set_session_attendance", {
+    p_session_id: sessionId,
+    p_email_hash: emailHash,
+    p_present: input.present,
+  })
+  if (error) return { error: error.message }
+  return {}
+}
+
 export async function createCourse(formData: FormData) {
   const profile = await requireCourseOwner()
   const supabase = await createClient()

@@ -1,4 +1,5 @@
 import { SiteChrome } from "@/components/site-chrome"
+import { AttendanceMarkToggle } from "@/components/attendance-mark-toggle"
 import { DownloadButton } from "@/components/download-button"
 import {
   ReportAtRiskThreshold,
@@ -328,6 +329,7 @@ export default async function ReportsPage({
     })
     const headers = ["Course", "Section", ...grid.headers]
     const rows = grid.rows.map((row) => [courseName, sectionLabel, ...row])
+    const identityColumns = 6
     return {
       id: section.id,
       course: courseName,
@@ -335,6 +337,9 @@ export default async function ReportsPage({
       sessionCount: sectionSessions.length,
       headers,
       rows,
+      identityColumns,
+      emailHashes: grid.emailHashes,
+      sessionIds: grid.sessionIds,
     }
   })
 
@@ -644,7 +649,8 @@ export default async function ReportsPage({
                       Scroll sideways for more date columns. {grid.rows.length}{" "}
                       students. Date range: {dateRangeLabel}. Grid CSV is the
                       on-screen table; Blackboard files are Grade Center upload
-                      format.
+                      format. Click a 1 or 0 in a session column to mark present
+                      or absent.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -705,16 +711,33 @@ export default async function ReportsPage({
                           <TableRow
                             key={`${grid.id}-${row[4] || row[2]}-${index}`}
                           >
-                            {row.map((cell, cellIndex) => (
-                              <TableCell
-                                key={`${grid.id}-${index}-${cellIndex}`}
-                                className={
-                                  stickyFor(grid.headers[cellIndex])
-                                }
-                              >
-                                {cell === "" ? "—" : cell}
-                              </TableCell>
-                            ))}
+                            {row.map((cell, cellIndex) => {
+                              const sessionOffset =
+                                cellIndex - grid.identityColumns
+                              const canEdit =
+                                sessionOffset >= 0 &&
+                                sessionOffset < grid.sessionIds.length
+                              return (
+                                <TableCell
+                                  key={`${grid.id}-${index}-${cellIndex}`}
+                                  className={
+                                    stickyFor(grid.headers[cellIndex])
+                                  }
+                                >
+                                  {canEdit ? (
+                                    <AttendanceMarkToggle
+                                      sessionId={grid.sessionIds[sessionOffset]}
+                                      emailHash={grid.emailHashes[index]}
+                                      present={cell === "1"}
+                                    />
+                                  ) : cell === "" ? (
+                                    "—"
+                                  ) : (
+                                    cell
+                                  )}
+                                </TableCell>
+                              )
+                            })}
                           </TableRow>
                         ))
                       ) : (

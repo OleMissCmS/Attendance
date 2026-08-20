@@ -438,6 +438,14 @@ export type Database = {
         Returns: undefined
       }
       session_display_code: { Args: { p_session_id: string }; Returns: Json }
+      set_session_attendance: {
+        Args: {
+          p_email_hash: string
+          p_present: boolean
+          p_session_id: string
+        }
+        Returns: undefined
+      }
       start_session: { Args: { p_section_id: number }; Returns: string }
       student_live_classes: {
         Args: { p_email_hash: string; p_is_test?: boolean }

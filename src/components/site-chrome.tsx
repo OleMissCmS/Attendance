@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { FacultyIdleLogout } from "@/components/faculty-idle-logout"
 import { FacultyNav, SignOutButton } from "@/components/faculty-nav"
 import { hasFacultyAppAccess } from "@/lib/faculty-email"
 import type { Profile } from "@/lib/supabase/types"
@@ -13,6 +14,7 @@ export function SiteChrome({
   const faculty = profile ? hasFacultyAppAccess(profile.role) : false
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
+      {faculty ? <FacultyIdleLogout /> : null}
       <header className="site-header sticky top-0 z-40 bg-[#000D26] text-white">
         <div className="relative flex flex-col gap-3 px-4 pb-2">
           <div className="flex justify-end">
