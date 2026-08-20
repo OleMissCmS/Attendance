@@ -12,6 +12,7 @@ import {
   formatSessionTiming,
 } from "@/lib/session-times"
 import { requireFaculty } from "@/lib/auth"
+import { canManageAttendanceData } from "@/lib/faculty-email"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +30,7 @@ export default async function SectionPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const profile = await requireFaculty()
+  const canManage = canManageAttendanceData(profile.role)
   const { id } = await params
   const { error } = await searchParams
   const sectionId = Number(id)
@@ -126,6 +128,8 @@ export default async function SectionPage({
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        {canManage ? (
+                          <>
                         <form action={resolveRosterAddRequest}>
                           <input type="hidden" name="section_id" value={sectionId} />
                           <input type="hidden" name="request_id" value={row.id} />
@@ -142,6 +146,12 @@ export default async function SectionPage({
                             Reject
                           </Button>
                         </form>
+                          </>
+                        ) : (
+                          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Pending
+                          </span>
+                        )}
                       </div>
                     </li>
                   )
@@ -151,6 +161,7 @@ export default async function SectionPage({
           </Card>
         ) : null}
 
+        {canManage ? (
         <Card>
           <CardHeader>
             <CardTitle>Attendance session</CardTitle>
@@ -179,6 +190,19 @@ export default async function SectionPage({
             )}
           </CardContent>
         </Card>
+        ) : live ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Attendance session</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                A session is currently live. Advisors can view reports; only
+                instructors and guests can run check-in.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
@@ -186,6 +210,7 @@ export default async function SectionPage({
               <CardTitle>Roster ({enrollments?.length ?? 0})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {canManage ? (
               <form action={addRoster} className="space-y-3">
                 <input type="hidden" name="section_id" value={sectionId} />
                 <div className="space-y-1">
@@ -197,10 +222,13 @@ export default async function SectionPage({
                     accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   />
                   <p className="text-xs text-muted-foreground">
-                    CSV, XLS, or XLSX. Student columns stay the same; assignment
-                    columns are ignored. Email is Username@go.olemiss.edu.
-                    Required column: Username. Also include Last Name, First
-                    Name, and Student ID when available.
+                    CSV, XLS, or XLSX from Blackboard Grade Center or
+                    Insight/Experience. Assignment columns are ignored. Email is
+                    Username@go.olemiss.edu (or the address before @ from Student
+                    Email Address). Required: Username or Student Email Address.
+                    Also include Last Name / Student Last Name, First Name /
+                    Student First Name, and Student ID / Student Number when
+                    available.
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -216,6 +244,11 @@ export default async function SectionPage({
                 </div>
                 <Button type="submit">Add to roster</Button>
               </form>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  View-only roster. Advisors cannot add or remove students.
+                </p>
+              )}
               <ul className="divide-y text-sm">
                 {enrollments?.map((row) => {
                   const student = decryptEnrollment(row)
@@ -234,6 +267,7 @@ export default async function SectionPage({
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
+                      {canManage ? (
                       <form action={removeEnrollment}>
                         <input type="hidden" name="section_id" value={sectionId} />
                         <input
@@ -245,6 +279,7 @@ export default async function SectionPage({
                           Remove
                         </Button>
                       </form>
+                      ) : null}
                     </li>
                   )
                 })}

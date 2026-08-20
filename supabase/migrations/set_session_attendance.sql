@@ -24,7 +24,7 @@ begin
     raise exception 'Session not found';
   end if;
 
-  if not public.has_section_access(session_section) then
+  if not public.can_manage_section(session_section) then
     raise exception 'Not authorized';
   end if;
 

@@ -13,6 +13,7 @@ import {
 } from "@/lib/attendance-stats"
 import { buildBlackboardGradeCenter } from "@/lib/blackboard-export"
 import { loadAuthorizedCourses } from "@/lib/faculty-access"
+import { canManageAttendanceData } from "@/lib/faculty-email"
 import { decryptEnrollment, decryptPii, usernameFromEmail } from "@/lib/pii"
 import { formatSectionLabel } from "@/lib/section-label"
 import { formatSessionTiming } from "@/lib/session-times"
@@ -99,10 +100,11 @@ export default async function ReportsPage({
   }>
 }) {
   const profile = await requireFaculty()
+  const canEditMarks = canManageAttendanceData(profile.role)
   const filters = await searchParams
   const supabase = await createClient()
 
-  const authorized = await loadAuthorizedCourses(profile.id)
+  const authorized = await loadAuthorizedCourses(profile)
   const courses = authorized.map((course) => ({
     id: course.id,
     code: course.code,
@@ -714,7 +716,7 @@ export default async function ReportsPage({
                             {row.map((cell, cellIndex) => {
                               const sessionOffset =
                                 cellIndex - grid.identityColumns
-                              const canEdit =
+                              const isAttendanceMark =
                                 sessionOffset >= 0 &&
                                 sessionOffset < grid.sessionIds.length
                               return (
@@ -724,7 +726,7 @@ export default async function ReportsPage({
                                     stickyFor(grid.headers[cellIndex])
                                   }
                                 >
-                                  {canEdit ? (
+                                  {isAttendanceMark && canEditMarks ? (
                                     <AttendanceMarkToggle
                                       sessionId={grid.sessionIds[sessionOffset]}
                                       emailHash={grid.emailHashes[index]}

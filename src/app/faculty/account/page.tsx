@@ -17,7 +17,9 @@ export default async function AccountSettingsPage() {
       <main className="mx-auto max-w-[50rem] space-y-6 px-4 py-8">
         <h1 className="text-2xl font-extrabold">Account settings</h1>
         <p className="text-muted-foreground">
-          Signed in as {profile.email}. Change your password below.
+          Signed in as {profile.email}
+          {profile.role === "advisor" ? " (advisor, view-only)" : ""}. Change
+          your own password below. You cannot change other users&apos; accounts.
         </p>
         <Card>
           <CardHeader>

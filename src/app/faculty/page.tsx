@@ -2,6 +2,10 @@ import { SiteChrome } from "@/components/site-chrome"
 import { StartCheckInForm } from "@/components/start-check-in-form"
 import { isActiveRecord } from "@/lib/active"
 import { requireFaculty } from "@/lib/auth"
+import {
+  canManageAttendanceData,
+  isAdvisorRole,
+} from "@/lib/faculty-email"
 import { formatSectionLabel } from "@/lib/section-label"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +17,8 @@ export default async function FacultyHomePage({
   searchParams: Promise<{ started?: string; reused?: string; error?: string }>
 }) {
   const profile = await requireFaculty()
+  const canManage = canManageAttendanceData(profile.role)
+  const advisor = isAdvisorRole(profile.role)
   const { started, reused, error } = await searchParams
   const supabase = await createClient()
   const { data: courses } = await supabase
@@ -29,7 +35,9 @@ export default async function FacultyHomePage({
     }))
     .filter(
       (course) =>
-        course.faculty_id === profile.id || course.sections.length > 0,
+        advisor ||
+        course.faculty_id === profile.id ||
+        course.sections.length > 0,
     )
   const sectionIds = visibleCourses.flatMap((course) =>
     (course.sections ?? []).map((section) => section.id),
@@ -117,6 +125,7 @@ export default async function FacultyHomePage({
   return (
     <SiteChrome profile={profile}>
       <main className="mx-auto max-w-[50rem] space-y-10 px-4 py-8">
+        {canManage ? (
         <section>
           <Card className="overflow-hidden border-[#333F58]/20 pt-0">
             <CardHeader className="bg-[#A1C6E7] px-4 py-1.5">
@@ -133,19 +142,25 @@ export default async function FacultyHomePage({
             </CardContent>
           </Card>
         </section>
+        ) : null}
 
         <section className="space-y-6">
           <div>
-            <h1 className="text-2xl font-extrabold">Your courses</h1>
+            <h1 className="text-2xl font-extrabold">
+              {advisor ? "All courses" : "Your courses"}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Open a section roster. Create courses, add sections, and invite
-              guests under Manage Courses.
+              {advisor
+                ? "View-only access. Open a section to review rosters and session history, or use Reports and Stats."
+                : "Open a section roster. Create courses, add sections, and invite guests under Manage Courses."}
             </p>
           </div>
 
           {!visibleCourses.length ? (
             <p className="text-muted-foreground">
-              Create a course under Manage Courses to start taking attendance.
+              {advisor
+                ? "No courses are available yet."
+                : "Create a course under Manage Courses to start taking attendance."}
             </p>
           ) : (
             <div className="space-y-8">
@@ -167,7 +182,7 @@ export default async function FacultyHomePage({
                       </div>
                       {!owner ? (
                         <span className="rounded-md bg-[#000D26] px-2 py-1 text-xs font-bold uppercase tracking-wide text-white">
-                          Guest
+                          {advisor ? "View only" : "Guest"}
                         </span>
                       ) : null}
                     </header>

@@ -1,4 +1,4 @@
-import { hasFacultyAppAccess } from "@/lib/faculty-email"
+import { hasFacultyAppAccess, canManageAttendanceData } from "@/lib/faculty-email"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type { Database, Profile } from "@/lib/supabase/types"
@@ -48,6 +48,13 @@ export async function requireProfile(): Promise<Profile> {
 export async function requireFaculty(): Promise<Profile> {
   const profile = await requireProfile()
   if (!hasFacultyAppAccess(profile.role)) redirect("/login")
+  return profile
+}
+
+/** Faculty/guest only — advisors are view-only. */
+export async function requireWritableFaculty(): Promise<Profile> {
+  const profile = await requireFaculty()
+  if (!canManageAttendanceData(profile.role)) redirect("/faculty")
   return profile
 }
 

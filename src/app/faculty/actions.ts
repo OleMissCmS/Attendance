@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { requireCourseOwner, requireFaculty } from "@/lib/auth"
+import { requireCourseOwner, requireFaculty, requireWritableFaculty } from "@/lib/auth"
 import {
   encryptOptionalPii,
   encryptPii,
@@ -26,7 +26,7 @@ export async function setSessionAttendance(input: {
   emailHash: string
   present: boolean
 }): Promise<{ error?: string }> {
-  await requireFaculty()
+  await requireWritableFaculty()
   const sessionId = input.sessionId.trim()
   const emailHash = input.emailHash.trim()
   if (!sessionId || emailHash.length < 32) {
@@ -194,7 +194,7 @@ export async function updateSection(formData: FormData) {
 }
 
 export async function addRoster(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sectionId = Number(formData.get("section_id"))
   if (!sectionId) redirect("/faculty")
@@ -251,7 +251,7 @@ export async function addRoster(formData: FormData) {
 }
 
 export async function removeEnrollment(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sectionId = Number(formData.get("section_id"))
   const enrollmentId = Number(formData.get("enrollment_id"))
@@ -260,7 +260,7 @@ export async function removeEnrollment(formData: FormData) {
 }
 
 export async function startSession(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sectionId = Number(formData.get("section_id"))
   const { data, error } = await supabase.rpc("start_session", {
@@ -271,7 +271,7 @@ export async function startSession(formData: FormData) {
 }
 
 export async function startCheckInSessions(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sectionIds = [
     ...new Set(
@@ -338,7 +338,7 @@ export async function startCheckInSessions(formData: FormData) {
 }
 
 export async function endSession(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sessionId = String(formData.get("session_id") ?? "")
   const sectionId = String(formData.get("section_id") ?? "")
@@ -409,7 +409,7 @@ export async function archiveCourse(formData: FormData) {
 }
 
 export async function resolveRosterAddRequest(formData: FormData) {
-  await requireFaculty()
+  await requireWritableFaculty()
   const supabase = await createClient()
   const sectionId = Number(formData.get("section_id"))
   const requestId = Number(formData.get("request_id"))

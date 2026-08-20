@@ -13,6 +13,16 @@ export function signupErrorMessage(errorMessage: string, email: string) {
   return errorMessage
 }
 
+/** Faculty app chrome: courses, reports, stats (includes advisors and guests). */
 export function hasFacultyAppAccess(role: string) {
+  return role === "faculty" || role === "guest" || role === "advisor"
+}
+
+export function isAdvisorRole(role: string) {
+  return role === "advisor"
+}
+
+/** Can mutate attendance, roster, sessions (not advisors). */
+export function canManageAttendanceData(role: string) {
   return role === "faculty" || role === "guest"
 }

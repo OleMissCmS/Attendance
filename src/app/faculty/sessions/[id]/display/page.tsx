@@ -1,12 +1,13 @@
 import { SessionDisplay } from "@/components/session-display"
 import { Button } from "@/components/ui/button"
 import { requireFaculty } from "@/lib/auth"
+import { canManageAttendanceData } from "@/lib/faculty-email"
 import { formatSectionLabel } from "@/lib/section-label"
 import { isTestMode } from "@/lib/test-mode"
 import { createClient } from "@/lib/supabase/server"
 import { headers } from "next/headers"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 export default async function DisplayPage({
   params,
@@ -15,7 +16,8 @@ export default async function DisplayPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ error?: string }>
 }) {
-  await requireFaculty()
+  const profile = await requireFaculty()
+  if (!canManageAttendanceData(profile.role)) redirect("/faculty")
   const { id } = await params
   const { error } = await searchParams
   const supabase = await createClient()

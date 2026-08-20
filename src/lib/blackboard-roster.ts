@@ -8,7 +8,27 @@ const SKIP_USERNAMES = new Set([
   "weighted total",
 ])
 
-const SKIP_LAST_NAMES = new Set(["points possible", "last name"])
+const SKIP_LAST_NAMES = new Set([
+  "points possible",
+  "last name",
+  "student last name",
+])
+
+const USERNAME_ALIASES = ["username", "user name", "user id"]
+const EMAIL_ALIASES = [
+  "student email address",
+  "student email",
+  "email address",
+  "email",
+]
+const LAST_NAME_ALIASES = ["last name", "lastname", "student last name"]
+const FIRST_NAME_ALIASES = ["first name", "firstname", "student first name"]
+const STUDENT_ID_ALIASES = [
+  "student id",
+  "studentid",
+  "student_id",
+  "student number",
+]
 
 export type RosterPerson = {
   lastName: string
@@ -50,6 +70,13 @@ function normalizeUsername(value: string) {
   return value.trim().toLowerCase().replace(/@.*$/, "")
 }
 
+function isRosterHeader(headers: string[]) {
+  return (
+    headerIndex(headers, USERNAME_ALIASES) >= 0 ||
+    headerIndex(headers, EMAIL_ALIASES) >= 0
+  )
+}
+
 export function parseBlackboardRoster(text: string): RosterPerson[] {
   const lines = text
     .split(/\r?\n/)
@@ -57,32 +84,32 @@ export function parseBlackboardRoster(text: string): RosterPerson[] {
     .filter(Boolean)
   if (lines.length < 2) return []
 
-  const headerLineIdx = lines.findIndex((line) => {
-    const headers = splitRow(line).map((header) => header.toLowerCase())
-    return headerIndex(headers, ["username", "user name", "user id"]) >= 0
-  })
+  const headerLineIdx = lines.findIndex((line) =>
+    isRosterHeader(splitRow(line).map((header) => header.toLowerCase())),
+  )
   if (headerLineIdx < 0 || headerLineIdx >= lines.length - 1) return []
 
   const headers = splitRow(lines[headerLineIdx]).map((header) =>
     header.toLowerCase(),
   )
-  const lastIdx = headerIndex(headers, ["last name", "lastname"])
-  const firstIdx = headerIndex(headers, ["first name", "firstname"])
-  const userIdx = headerIndex(headers, ["username", "user name", "user id"])
-  const idIdx = headerIndex(headers, [
-    "student id",
-    "studentid",
-    "student_id",
-  ])
+  const lastIdx = headerIndex(headers, LAST_NAME_ALIASES)
+  const firstIdx = headerIndex(headers, FIRST_NAME_ALIASES)
+  const userIdx = headerIndex(headers, USERNAME_ALIASES)
+  const emailIdx = headerIndex(headers, EMAIL_ALIASES)
+  const idIdx = headerIndex(headers, STUDENT_ID_ALIASES)
 
-  if (userIdx < 0) return []
+  if (userIdx < 0 && emailIdx < 0) return []
 
   const people: RosterPerson[] = []
   const seen = new Set<string>()
 
   for (const line of lines.slice(headerLineIdx + 1)) {
     const cells = splitRow(line)
-    const username = normalizeUsername(cells[userIdx] ?? "")
+    const fromUsername =
+      userIdx >= 0 ? normalizeUsername(cells[userIdx] ?? "") : ""
+    const fromEmail =
+      emailIdx >= 0 ? normalizeUsername(cells[emailIdx] ?? "") : ""
+    const username = fromUsername || fromEmail
     const lastName = lastIdx >= 0 ? (cells[lastIdx] ?? "").trim() : ""
     const firstName = firstIdx >= 0 ? (cells[firstIdx] ?? "").trim() : ""
     if (!username || SKIP_USERNAMES.has(username)) continue
@@ -153,15 +180,21 @@ function rowsToTsv(rows: unknown[][]) {
     .join("\n")
 }
 
+function looksLikeRosterText(text: string) {
+  return (
+    /username/i.test(text) ||
+    /last name/i.test(text) ||
+    /student email/i.test(text) ||
+    /student number/i.test(text) ||
+    text.includes("<table")
+  )
+}
+
 export async function parseRosterFile(file: File): Promise<RosterPerson[]> {
   const buffer = Buffer.from(await file.arrayBuffer())
   const asText = bufferToText(buffer)
-  const looksText =
-    /username/i.test(asText) ||
-    /last name/i.test(asText) ||
-    asText.includes("<table")
 
-  if (looksText) {
+  if (looksLikeRosterText(asText)) {
     const text = asText.includes("<table")
       ? asText.replace(/<[^>]+>/g, "\t")
       : asText

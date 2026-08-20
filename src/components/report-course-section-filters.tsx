@@ -216,11 +216,6 @@ export function ReportCourseSectionFilters({
               </option>
             ))}
           </select>
-          {!sessionEnabled ? (
-            <p className="text-xs text-muted-foreground">
-              Select a course or section to choose a session
-            </p>
-          ) : null}
         </div>
       ) : null}
     </>

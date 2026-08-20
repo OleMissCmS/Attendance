@@ -25,7 +25,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     summary:
       "Attendance Tracker is for Ole Miss faculty to take classroom attendance with a QR code and short classroom code.",
     paragraphs: [
-      "Faculty and invited guests (such as GAs) sign in with an email and password. Students do not create accounts. They save the email on your Blackboard roster at [Student check-in](/student), then check in with the code shown in class (via QR or check-in link).",
+      "Faculty and invited guests (such as GAs) sign in with an email and password. Student advisors on the allowlist (for example emridout@olemiss.edu) get a view-only advisor account: they can open Reports and Stats for every course, but cannot create courses, edit attendance, or change other users. Students do not create accounts. They save the email on your Blackboard roster at [Student check-in](/student), then check in with the code shown in class (via QR or check-in link).",
       "Use the header to move between [Courses](/faculty), [Reports](/faculty/reports), [Stats](/faculty/stats), [Manage Courses](/faculty/manage) (course owners only), [Account settings](/faculty/account), and this [Tutorial](/tutorial).",
     ],
     links: [
@@ -125,8 +125,8 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     summary:
       "Upload a Blackboard Grade Center file or paste roster text on the section page.",
     paragraphs: [
-      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center CSV, XLS, or XLSX, or paste Grade Center text.",
-      "Required column: Username (email is built as Username@go.olemiss.edu). Also include Last Name, First Name, and Student ID when available so reports and Blackboard downloads stay complete. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
+      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center or Insight/Experience CSV, XLS, or XLSX, or paste Grade Center text.",
+      "Required: Username (Blackboard) or Student Email Address (Insight/Experience — username is the part before @). Also include Last Name / Student Last Name, First Name / Student First Name, and Student ID / Student Number when available. Email stored for check-in is Username@go.olemiss.edu. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
     ],
     steps: [
       "From [Courses](/faculty), open the section.",
@@ -136,7 +136,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     callouts: [
       {
         title: "Required upload fields",
-        body: "Username is required. Include Last Name, First Name, and Student ID when available.",
+        body: "Required: Username or Student Email Address. Include Last Name / Student Last Name, First Name / Student First Name, and Student ID / Student Number when available.",
       },
     ],
     links: [{ href: "/faculty", label: "Courses — open a section" }],

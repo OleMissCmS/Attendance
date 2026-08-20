@@ -30,7 +30,7 @@ export default async function FacultyStatsPage({
   const profile = await requireFaculty()
   const filters = await searchParams
   const supabase = await createClient()
-  const authorized = await loadAuthorizedCourses(profile.id)
+  const authorized = await loadAuthorizedCourses(profile)
   const courseId = filters.course ? Number(filters.course) : undefined
   const sectionId = filters.section ? Number(filters.section) : undefined
   const allSections = authorized.flatMap((course) =>
