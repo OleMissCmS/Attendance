@@ -9,10 +9,12 @@ export function RosterAddRequestForm({
   sessionId,
   email,
   error,
+  sessionEnded,
 }: {
   sessionId: string
   email: string
   error?: string
+  sessionEnded?: boolean
 }) {
   return (
     <form action={requestRosterAddition} className="space-y-3">
@@ -21,6 +23,15 @@ export function RosterAddRequestForm({
         You are not on this roster. Submit a roster addition request for your
         instructor.
       </p>
+      <p className="text-sm text-muted-foreground">
+        Take your time filling this out. You do not need a new classroom code.
+      </p>
+      {sessionEnded ? (
+        <p role="status" className="text-sm text-amber-800">
+          This attendance session has ended. You can still submit the request
+          so your instructor can add you.
+        </p>
+      ) : null}
       <div className="space-y-1">
         <Label htmlFor="last_name">Last Name</Label>
         <Input

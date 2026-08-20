@@ -2,6 +2,7 @@ import { CheckInForm } from "@/components/check-in-form"
 import { RosterAddRequestForm } from "@/components/roster-add-request-form"
 import { SiteChrome } from "@/components/site-chrome"
 import { getRememberedEmail } from "@/lib/device"
+import { hasRosterAddEligibility } from "@/lib/roster-add-eligibility"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -29,6 +30,7 @@ export default async function CheckInPage({
   const remembered = await getRememberedEmail()
   const email = emailParam?.trim().toLowerCase() || remembered
   const supabase = await createClient()
+  const rosterEligible = await hasRosterAddEligibility(sessionId)
 
   const { data, error: infoError } = await supabase.rpc("live_session_info", {
     p_session_id: sessionId,
@@ -41,20 +43,35 @@ export default async function CheckInPage({
     section_label: string
     ended: boolean
   }
-  const notOnRoster = error === "not_roster"
+  const showRosterForm =
+    done !== "1" &&
+    requested !== "1" &&
+    (error === "not_roster" || rosterEligible)
+  const checkInError =
+    error === "expired"
+      ? "Your roster request window expired. Enter the current classroom code to start again."
+      : error === "ended"
+        ? "This attendance session is no longer available. Ask your instructor to add you to the roster."
+        : error === "not_roster"
+          ? undefined
+          : error
   const requestError =
     request === "missing"
       ? "Enter last name, first name, network ID, student ID, and email."
-      : request === "failed"
-        ? "Could not submit that request. Try again."
-        : undefined
+      : request === "enrolled"
+        ? "That email is already on this roster. Try checking in again."
+        : request === "failed"
+          ? "Could not submit that request. Try again."
+          : undefined
 
   return (
     <SiteChrome profile={null}>
       <div className="flex items-center justify-center px-4 py-16">
         <Card className="w-full max-w-[24rem]">
           <CardHeader>
-            <CardTitle>Check in</CardTitle>
+            <CardTitle>
+              {showRosterForm ? "Roster request" : "Check in"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1 text-sm">
@@ -101,22 +118,25 @@ export default async function CheckInPage({
                   you will be marked present for this session.
                 </p>
               </div>
-            ) : notOnRoster ? (
+            ) : showRosterForm ? (
               <RosterAddRequestForm
                 sessionId={sessionId}
                 email={email}
                 error={requestError}
+                sessionEnded={info.ended}
               />
             ) : info.ended ? (
               <p role="alert" className="text-sm text-destructive">
-                This session has ended.
+                {error === "ended"
+                  ? "This attendance session is no longer available. Ask your instructor to add you to the roster."
+                  : "This session has ended."}
               </p>
             ) : (
               <CheckInForm
                 sessionId={sessionId}
                 email={email}
                 token={t?.toUpperCase() ?? ""}
-                error={error}
+                error={checkInError}
               />
             )}
             <p className="text-center text-sm">

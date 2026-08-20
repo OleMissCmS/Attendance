@@ -96,7 +96,7 @@ export default async function SectionPage({
         ) : null}
 
         {addRequests?.length ? (
-          <Card>
+          <Card className="border-rose-200 bg-rose-50">
             <CardHeader>
               <CardTitle>Roster Add Requests</CardTitle>
             </CardHeader>

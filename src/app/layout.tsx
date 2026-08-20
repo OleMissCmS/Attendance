@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Analytics } from "@vercel/analytics/next"
 import { Nunito_Sans } from "next/font/google"
 import "./globals.css"
 
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className={`${nunito.className} flex min-h-full flex-col bg-background font-sans text-foreground`}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
