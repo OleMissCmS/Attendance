@@ -81,9 +81,15 @@ export function FacultyNav({
           label: "Account settings",
           match: (path: string) => path.startsWith("/faculty/account"),
         },
+        {
+          href: "/tutorial",
+          label: "Tutorial",
+          match: (path: string) => path.startsWith("/tutorial"),
+        },
       ]
     : [
         { href: "/student", label: "My Classes", match: (path: string) => path.startsWith("/student") },
+        { href: "/tutorial", label: "Tutorial", match: (path: string) => path.startsWith("/tutorial") },
         { href: "/login", label: "Faculty Sign In", match: (path: string) => path.startsWith("/login") },
       ]
 

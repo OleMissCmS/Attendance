@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { LoginForm } from "@/components/login-form"
 import { SiteChrome } from "@/components/site-chrome"
 import {
@@ -34,7 +35,15 @@ export default async function LoginPage({
             </CardTitle>
             <CardDescription>
               Sign in with email and password. Students check in from My
-              classes or a QR code — they do not create accounts.
+              classes or a QR code — they do not create accounts. New here? See
+              the{" "}
+              <Link
+                href="/tutorial"
+                className="font-semibold text-[#CE1126] underline-offset-4 hover:underline"
+              >
+                faculty tutorial
+              </Link>
+              .
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
