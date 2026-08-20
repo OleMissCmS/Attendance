@@ -115,22 +115,28 @@ export function ReportLiveFilters({
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <Label htmlFor="from">From</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="from" className="shrink-0">
+            From
+          </Label>
           <Input
             id="from"
             name="from"
             type="date"
+            className="min-w-0 flex-1"
             defaultValue={current.from ?? ""}
             onChange={(event) => navigate({ from: event.target.value })}
           />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="to">To</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="to" className="shrink-0">
+            To
+          </Label>
           <Input
             id="to"
             name="to"
             type="date"
+            className="min-w-0 flex-1"
             defaultValue={current.to ?? ""}
             onChange={(event) => navigate({ to: event.target.value })}
           />
