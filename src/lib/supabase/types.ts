@@ -447,10 +447,6 @@ export type Database = {
         Returns: undefined
       }
       start_session: { Args: { p_section_id: number }; Returns: string }
-      student_live_classes: {
-        Args: { p_email_hash: string; p_is_test?: boolean }
-        Returns: Json
-      }
     }
     Enums: {
       [_ in never]: never

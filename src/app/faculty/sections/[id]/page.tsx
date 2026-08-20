@@ -199,6 +199,8 @@ export default async function SectionPage({
                   <p className="text-xs text-muted-foreground">
                     CSV, XLS, or XLSX. Student columns stay the same; assignment
                     columns are ignored. Email is Username@go.olemiss.edu.
+                    Required column: Username. Also include Last Name, First
+                    Name, and Student ID when available.
                   </p>
                 </div>
                 <div className="space-y-1">

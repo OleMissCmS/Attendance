@@ -125,13 +125,19 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     summary:
       "Upload a Blackboard Grade Center file or paste roster text on the section page.",
     paragraphs: [
-      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center CSV, XLS, or XLSX, or paste Grade Center text. Expected columns include Last Name, First Name, Username, and Student ID.",
-      "Email is built as Username@go.olemiss.edu. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
+      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center CSV, XLS, or XLSX, or paste Grade Center text.",
+      "Required column: Username (email is built as Username@go.olemiss.edu). Also include Last Name, First Name, and Student ID when available so reports and Blackboard downloads stay complete. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
     ],
     steps: [
       "From [Courses](/faculty), open the section.",
       "Choose a Grade Center file or paste the roster text.",
       "Select Add to roster and confirm students appear in the list.",
+    ],
+    callouts: [
+      {
+        title: "Required upload fields",
+        body: "Username is required. Include Last Name, First Name, and Student ID when available.",
+      },
     ],
     links: [{ href: "/faculty", label: "Courses — open a section" }],
     images: [
