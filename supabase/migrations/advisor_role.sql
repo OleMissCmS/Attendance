@@ -1,5 +1,9 @@
 -- Advisor role: view-all attendance data, no writes.
 
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check
+  check (role = any (array['faculty'::text, 'student'::text, 'guest'::text, 'advisor'::text]));
+
 create table if not exists private.advisor_emails (
   email text primary key
 );

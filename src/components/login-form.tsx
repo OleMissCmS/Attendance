@@ -38,6 +38,11 @@ export function LoginForm() {
     setStatus("working")
     setMessage("")
     const normalizedEmail = email.trim().toLowerCase()
+    if (password.length < 6) {
+      setStatus("error")
+      setMessage("Password must be at least 6 characters.")
+      return
+    }
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -81,7 +86,6 @@ export function LoginForm() {
           id="password"
           type="password"
           required
-          minLength={6}
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
