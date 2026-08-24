@@ -416,6 +416,10 @@ export type Database = {
       }
       is_faculty: { Args: never; Returns: boolean }
       live_session_info: { Args: { p_session_id: string }; Returns: Json }
+      code_expires_in: {
+        Args: { p_session_id: string; p_token: string }
+        Returns: number
+      }
       has_course_access: { Args: { p_course_id: number }; Returns: boolean }
       has_section_access: { Args: { p_section_id: number }; Returns: boolean }
       owns_course: { Args: { p_course_id: number }; Returns: boolean }

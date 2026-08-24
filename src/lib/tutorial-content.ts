@@ -178,13 +178,13 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
       "Show the fullscreen QR code and 6-character classroom code while students check in.",
     paragraphs: [
       "The Check-In Session QR Code page shows a large QR code and a short code. Enter fullscreen if helpful so students in the back can see it.",
-      "A new code appears about every 10 seconds. Each code stays valid for about 30 seconds (the current code plus the previous two windows). If a student waits too long, they must use the newest code on the screen.",
+      "A new code appears about every 15 seconds. Each code stays valid for about 30 seconds (the current code plus the previous window). If a student waits too long, they must use the newest code on the screen.",
       "Use End session when class attendance is finished. Start a session from [Courses](/faculty) when you need this screen.",
     ],
     callouts: [
       {
         title: "Code timing",
-        body: "New code every 10 seconds; each code remains valid for about 30 seconds.",
+        body: "New code every 15 seconds; each code remains valid for about 30 seconds.",
       },
     ],
     links: [{ href: "/faculty", label: "Courses — start a session" }],
@@ -310,7 +310,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     ],
     steps: [
       "Create faculty account fails with “invalid email address” — use @olemiss.edu, not go.olemiss.edu. Try again at [Faculty sign in](/login).",
-      "Code expired or incorrect — use the newest code on the Check-In Session QR Code screen (codes rotate about every 10 seconds).",
+      "Code expired or incorrect — use the newest code on the Check-In Session QR Code screen (codes rotate about every 15 seconds).",
       "This phone is already used by another student — that device is locked to a different roster email; use another phone or fix the mark in [Reports](/faculty/reports).",
       "Check-in says not on roster — the email must match the roster (usually username@go.olemiss.edu). Students can save that address on [Student check-in](/student) before class.",
       "Blackboard download missing — select exactly one section in [Reports](/faculty/reports) filters.",

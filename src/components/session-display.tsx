@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 
 const POLL_MS = 2000
-const ROTATE_MS = 10_000
+const ROTATE_MS = 15_000
+const ROTATE_SECONDS = ROTATE_MS / 1000
 
 export function SessionDisplay({
   sessionId,
@@ -27,21 +28,24 @@ export function SessionDisplay({
   clickableQr?: boolean
 }) {
   const [code, setCode] = useState("------")
+  const [expiresAt, setExpiresAt] = useState<number | null>(null)
   const [qr, setQr] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
   const courseTitle = useMemo(() => {
-    const code = courseCode.trim()
+    const codeLabel = courseCode.trim()
     const name = courseName.trim()
-    if (!name || name.toLowerCase() === code.toLowerCase()) return code
-    return `${code} ${name}`
+    if (!name || name.toLowerCase() === codeLabel.toLowerCase()) return codeLabel
+    return `${codeLabel} ${name}`
   }, [courseCode, courseName])
 
-  const checkInUrl = useMemo(
-    () => `${origin}/c/${sessionId}?t=${encodeURIComponent(code)}`,
-    [origin, sessionId, code],
-  )
+  const checkInUrl = useMemo(() => {
+    const url = new URL(`${origin}/c/${sessionId}`)
+    url.searchParams.set("t", code)
+    if (expiresAt != null) url.searchParams.set("exp", String(expiresAt))
+    return url.toString()
+  }, [origin, sessionId, code, expiresAt])
 
   useEffect(() => {
     const supabase = createClient()
@@ -57,9 +61,15 @@ export function SessionDisplay({
         setError(rpcError.message)
         return
       }
-      const payload = data as { code?: string } | null
+      const payload = data as {
+        code?: string
+        expires_at?: number
+      } | null
       const nextCode = payload?.code ?? "------"
       setCode(nextCode)
+      setExpiresAt(
+        typeof payload?.expires_at === "number" ? payload.expires_at : null,
+      )
       setError(null)
     }
 
@@ -161,8 +171,8 @@ export function SessionDisplay({
             role="meter"
             aria-label="Time until a new code appears"
             aria-valuemin={0}
-            aria-valuemax={10}
-            aria-valuenow={Math.round((1 - progress) * 10)}
+            aria-valuemax={ROTATE_SECONDS}
+            aria-valuenow={Math.round((1 - progress) * ROTATE_SECONDS)}
           >
             <div
               className="h-full bg-[#A1C6E7]"
@@ -170,13 +180,12 @@ export function SessionDisplay({
             />
           </div>
           <p className="sr-only">
-            About {Math.max(0, Math.round((1 - progress) * 10))} seconds until
-            a new code appears.
+            About {Math.max(0, Math.round((1 - progress) * ROTATE_SECONDS))}{" "}
+            seconds until a new code appears.
           </p>
           <p className="mt-3 max-w-md text-sm text-white/70">
-            A new code appears every 10 seconds. Each code remains valid for 30
-            seconds. Scan the QR code, then enter this classroom code to check
-            in.
+            Once you scan this code, it will be good for 30 seconds. There is no
+            need to change your code on the next screen.
           </p>
           {error ? (
             <p role="alert" className="mt-3 text-red-400">

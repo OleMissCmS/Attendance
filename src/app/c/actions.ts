@@ -44,6 +44,18 @@ export async function submitCheckIn(formData: FormData) {
     (result && result.ok === false ? result.error || "Check-in failed" : null)
 
   if (failedMessage) {
+    // Re-scan after a successful check-in: show confirmation instead of an error.
+    if (/already checked in/i.test(failedMessage)) {
+      await clearRosterAddEligibility()
+      await rememberEmail(email)
+      const alreadyParams = new URLSearchParams({
+        done: "1",
+        at: new Date().toISOString(),
+      })
+      if (allowTestStudentCheckIn(email)) alreadyParams.set("test", "1")
+      redirect(`/c/${sessionId}?${alreadyParams.toString()}`)
+    }
+
     const params = new URLSearchParams()
     if (/not on this roster/i.test(failedMessage)) {
       // Presence already proved via a valid classroom code; do not keep `t=`

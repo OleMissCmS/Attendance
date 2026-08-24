@@ -16,6 +16,7 @@ export default async function CheckInPage({
   params: Promise<{ sessionId: string }>
   searchParams: Promise<{
     t?: string
+    exp?: string
     error?: string
     done?: string
     at?: string
@@ -26,10 +27,11 @@ export default async function CheckInPage({
   }>
 }) {
   const { sessionId } = await params
-  const { t, error, done, at, test, email: emailParam, requested, request } =
+  const { t, exp, error, done, at, test, email: emailParam, requested, request } =
     await searchParams
   const remembered = await getRememberedEmail()
   const email = emailParam?.trim().toLowerCase() || remembered
+  const expiresAt = exp && /^\d+$/.test(exp) ? Number(exp) : null
   const supabase = await createClient()
   const rosterEligible = await hasRosterAddEligibility(sessionId)
 
@@ -132,7 +134,14 @@ export default async function CheckInPage({
                 sessionId={sessionId}
                 email={email}
                 token={t?.toUpperCase() ?? ""}
+                expiresAt={expiresAt}
                 error={checkInError}
+                autoSubmit={
+                  Boolean(remembered) &&
+                  Boolean(t?.trim()) &&
+                  !error &&
+                  !info.ended
+                }
               />
             )}
             <p className="text-center text-sm">
