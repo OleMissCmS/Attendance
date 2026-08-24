@@ -16,15 +16,33 @@ export function RosterAddRequestForm({
   error?: string
   sessionEnded?: boolean
 }) {
+  const alreadyEnrolled = Boolean(error?.includes("already on this roster"))
+
+  if (alreadyEnrolled) {
+    return (
+      <div className="space-y-3">
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Rosters use @go.olemiss.edu. Enter that address on the check-in form
+          (reload or scan the QR again) instead of requesting a roster add.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <form action={requestRosterAddition} className="space-y-3">
       <input type="hidden" name="session_id" value={sessionId} />
+      <input type="hidden" name="check_in_email" value={email} />
       <p className="text-sm text-destructive">
         You are not on this roster. Submit a roster addition request for your
         instructor.
       </p>
       <p className="text-sm text-muted-foreground">
         Take your time filling this out. You do not need a new classroom code.
+        Use your student email (usually username@go.olemiss.edu).
       </p>
       {sessionEnded ? (
         <p role="status" className="text-sm text-amber-800">

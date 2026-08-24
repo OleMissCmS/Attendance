@@ -62,7 +62,7 @@ export default async function CheckInPage({
     request === "missing"
       ? "Enter last name, first name, network ID, student ID, and email."
       : request === "enrolled"
-        ? "That email is already on this roster. Try checking in again."
+        ? "That email is already on this roster (often as username@go.olemiss.edu). Try checking in again with that address."
         : request === "failed"
           ? "Could not submit that request. Try again."
           : undefined

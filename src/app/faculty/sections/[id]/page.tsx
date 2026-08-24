@@ -6,11 +6,12 @@ import {
   resolveRosterAddRequest,
   startSession,
 } from "@/app/faculty/actions"
-import { decryptEnrollment } from "@/lib/pii"
+import { decryptEnrollment, decryptPii } from "@/lib/pii"
 import { formatSectionLabel } from "@/lib/section-label"
 import {
   formatSessionTiming,
 } from "@/lib/session-times"
+import { formatCentralTime } from "@/lib/time"
 import { requireFaculty } from "@/lib/auth"
 import { canManageAttendanceData } from "@/lib/faculty-email"
 import { createClient } from "@/lib/supabase/server"
@@ -51,8 +52,12 @@ export default async function SectionPage({
     notFound()
   }
 
-  const [{ data: enrollments }, { data: sessions }, { data: addRequests }] =
-    await Promise.all([
+  const [
+    { data: enrollments },
+    { data: sessions },
+    { data: addRequests },
+    { data: missAttempts },
+  ] = await Promise.all([
     supabase
       .from("enrollments")
       .select("*")
@@ -69,6 +74,12 @@ export default async function SectionPage({
       .eq("section_id", sectionId)
       .eq("status", "pending")
       .order("created_at"),
+    supabase
+      .from("roster_miss_attempts")
+      .select("*")
+      .eq("section_id", sectionId)
+      .order("created_at", { ascending: false })
+      .limit(40),
   ])
 
   const live = sessions?.find((session) => !session.ended_at)
@@ -106,6 +117,7 @@ export default async function SectionPage({
               <ul className="divide-y text-sm">
                 {addRequests.map((row) => {
                   const student = decryptEnrollment(row)
+                  const checkInEmail = decryptPii(row.check_in_email_cipher)
                   return (
                     <li
                       key={row.id}
@@ -126,6 +138,13 @@ export default async function SectionPage({
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
+                        {checkInEmail &&
+                        checkInEmail.toLowerCase() !==
+                          student.email.toLowerCase() ? (
+                          <p className="text-xs text-amber-900">
+                            Checked in as {checkInEmail}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex gap-2">
                         {canManage ? (
@@ -153,6 +172,45 @@ export default async function SectionPage({
                           </span>
                         )}
                       </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {missAttempts?.length ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Not-on-roster check-ins</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <p className="text-muted-foreground">
+                Emails students tried when check-in said they were not on this
+                roster (or when a roster-add found they already were).
+              </p>
+              <ul className="divide-y">
+                {missAttempts.map((row) => {
+                  const attempted =
+                    decryptPii(row.attempted_email_cipher) || "(unknown)"
+                  const when = formatCentralTime(row.created_at)
+                  const sourceLabel =
+                    row.source === "roster_add_enrolled"
+                      ? "Already on roster (add form)"
+                      : "Not on roster (check-in)"
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex flex-wrap justify-between gap-2 py-2"
+                    >
+                      <div>
+                        <p className="font-medium text-[#000D26]">{attempted}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {sourceLabel}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{when}</p>
                     </li>
                   )
                 })}

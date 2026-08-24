@@ -12,6 +12,30 @@ export function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
+/** Prefer go.olemiss.edu when a student typed the faculty-style @olemiss.edu domain. */
+export function preferredStudentEmail(email: string) {
+  const normalized = normalizeEmail(email)
+  const at = normalized.lastIndexOf("@")
+  if (at <= 0) return normalized
+  const local = normalized.slice(0, at)
+  const domain = normalized.slice(at + 1)
+  if (domain === "olemiss.edu") return `${local}@go.olemiss.edu`
+  return normalized
+}
+
+/** Exact email plus Ole Miss student/faculty domain alias for roster matching. */
+export function oleMissEmailAliases(email: string) {
+  const normalized = normalizeEmail(email)
+  if (!normalized.includes("@")) return [normalized]
+  const at = normalized.lastIndexOf("@")
+  const local = normalized.slice(0, at)
+  const domain = normalized.slice(at + 1)
+  const aliases = [normalized]
+  if (domain === "olemiss.edu") aliases.push(`${local}@go.olemiss.edu`)
+  else if (domain === "go.olemiss.edu") aliases.push(`${local}@olemiss.edu`)
+  return aliases
+}
+
 export function usernameFromEmail(email: string) {
   return normalizeEmail(email).split("@")[0] || ""
 }
@@ -20,6 +44,12 @@ export function hashEmail(email: string) {
   return createHmac("sha256", requireKey("EMAIL_HMAC_SECRET"))
     .update(normalizeEmail(email))
     .digest("hex")
+}
+
+export function rosterEmailHashes(email: string) {
+  const aliases = oleMissEmailAliases(email)
+  const [primary, ...alts] = aliases.map((value) => hashEmail(value))
+  return { primary, alts }
 }
 
 export function encryptPii(plaintext: string) {

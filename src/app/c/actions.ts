@@ -11,8 +11,9 @@ import {
 import {
   encryptOptionalPii,
   encryptPii,
-  hashEmail,
   normalizeEmail,
+  preferredStudentEmail,
+  rosterEmailHashes,
   usernameFromEmail,
 } from "@/lib/pii"
 import { collapseWhitespace } from "@/lib/student-identity"
@@ -27,18 +28,24 @@ export async function submitCheckIn(formData: FormData) {
     .toUpperCase()
   const isIncognito = String(formData.get("incognito") ?? "") === "1"
   const deviceId = await getOrCreateDeviceId()
+  const { primary, alts } = rosterEmailHashes(email)
 
   const { data, error } = await supabase.rpc("check_in", {
     p_session_id: sessionId,
     p_token: token,
-    p_email_hash: hashEmail(email),
+    p_email_hash: primary,
     p_email_cipher: encryptPii(email),
     p_device_id: deviceId,
     p_is_incognito: isIncognito,
     p_is_test: allowTestStudentCheckIn(email),
+    p_alt_email_hashes: alts.length ? alts : undefined,
   })
 
-  const result = data as { ok?: boolean; error?: string } | null
+  const result = data as {
+    ok?: boolean
+    error?: string
+    email_aliased?: boolean
+  } | null
   const failedMessage =
     error?.message ||
     (result && result.ok === false ? result.error || "Check-in failed" : null)
@@ -47,7 +54,9 @@ export async function submitCheckIn(formData: FormData) {
     // Re-scan after a successful check-in: show confirmation instead of an error.
     if (/already checked in/i.test(failedMessage)) {
       await clearRosterAddEligibility()
-      await rememberEmail(email)
+      await rememberEmail(
+        result?.email_aliased ? preferredStudentEmail(email) : email,
+      )
       const alreadyParams = new URLSearchParams({
         done: "1",
         at: new Date().toISOString(),
@@ -71,7 +80,9 @@ export async function submitCheckIn(formData: FormData) {
   }
 
   await clearRosterAddEligibility()
-  await rememberEmail(email)
+  await rememberEmail(
+    result?.email_aliased ? preferredStudentEmail(email) : email,
+  )
   const params = new URLSearchParams({ done: "1", at: new Date().toISOString() })
   if (allowTestStudentCheckIn(email)) params.set("test", "1")
   redirect(`/c/${sessionId}?${params.toString()}`)
@@ -85,6 +96,9 @@ export async function requestRosterAddition(formData: FormData) {
   const networkId = collapseWhitespace(String(formData.get("network_id") ?? ""))
   const studentId = collapseWhitespace(String(formData.get("student_id") ?? ""))
   const email = normalizeEmail(String(formData.get("email") ?? ""))
+  const checkInEmail = normalizeEmail(
+    String(formData.get("check_in_email") ?? email),
+  )
 
   const fail = async (code: string) => {
     // Eligibility lost or session gone: return to check-in, not the roster form.
@@ -105,16 +119,21 @@ export async function requestRosterAddition(formData: FormData) {
     await fail("missing")
   }
 
+  const { primary, alts } = rosterEmailHashes(email)
+  const checkInHashes = rosterEmailHashes(checkInEmail)
   const fullName = `${lastName}, ${firstName}`
   const { error } = await supabase.rpc("request_roster_addition", {
     p_session_id: sessionId,
-    p_email_hash: hashEmail(email),
+    p_email_hash: primary,
     p_email_cipher: encryptPii(email),
     p_last_name_cipher: encryptPii(lastName),
     p_first_name_cipher: encryptPii(firstName),
     p_username_cipher: encryptPii(networkId || usernameFromEmail(email)),
     p_student_id_cipher: encryptPii(studentId),
     p_name_cipher: encryptOptionalPii(fullName) ?? encryptPii(fullName),
+    p_alt_email_hashes: alts.length ? alts : undefined,
+    p_check_in_email_hash: checkInHashes.primary,
+    p_check_in_email_cipher: encryptPii(checkInEmail),
   })
   if (error) {
     if (/session has ended/i.test(error.message)) await fail("ended")

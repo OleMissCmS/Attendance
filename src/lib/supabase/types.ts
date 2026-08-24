@@ -289,6 +289,8 @@ export type Database = {
       }
       roster_add_requests: {
         Row: {
+          check_in_email_cipher: string | null
+          check_in_email_hash: string | null
           created_at: string
           email_cipher: string
           email_hash: string
@@ -304,6 +306,8 @@ export type Database = {
           username_cipher: string | null
         }
         Insert: {
+          check_in_email_cipher?: string | null
+          check_in_email_hash?: string | null
           created_at?: string
           email_cipher: string
           email_hash: string
@@ -319,6 +323,8 @@ export type Database = {
           username_cipher?: string | null
         }
         Update: {
+          check_in_email_cipher?: string | null
+          check_in_email_hash?: string | null
           created_at?: string
           email_cipher?: string
           email_hash?: string
@@ -343,6 +349,57 @@ export type Database = {
           },
           {
             foreignKeyName: "roster_add_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roster_miss_attempts: {
+        Row: {
+          alias_match_email_hash: string | null
+          attempted_email_cipher: string
+          attempted_email_hash: string
+          created_at: string
+          device_id: string | null
+          id: number
+          section_id: number
+          session_id: string
+          source: string
+        }
+        Insert: {
+          alias_match_email_hash?: string | null
+          attempted_email_cipher: string
+          attempted_email_hash: string
+          created_at?: string
+          device_id?: string | null
+          id?: never
+          section_id: number
+          session_id: string
+          source: string
+        }
+        Update: {
+          alias_match_email_hash?: string | null
+          attempted_email_cipher?: string
+          attempted_email_hash?: string
+          created_at?: string
+          device_id?: string | null
+          id?: never
+          section_id?: number
+          session_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_miss_attempts_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_miss_attempts_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "attendance_sessions"
@@ -398,6 +455,7 @@ export type Database = {
       record_failed_login: { Args: { p_email: string }; Returns: boolean }
       check_in: {
         Args: {
+          p_alt_email_hashes?: string[]
           p_device_id: string
           p_email_cipher: string
           p_email_hash: string
@@ -426,6 +484,9 @@ export type Database = {
       owns_section: { Args: { p_section_id: number }; Returns: boolean }
       request_roster_addition: {
         Args: {
+          p_alt_email_hashes?: string[]
+          p_check_in_email_cipher?: string
+          p_check_in_email_hash?: string
           p_email_cipher: string
           p_email_hash: string
           p_first_name_cipher: string
