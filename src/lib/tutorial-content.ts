@@ -25,7 +25,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     summary:
       "Attendance Tracker is for Ole Miss faculty to take classroom attendance with a QR code and short classroom code.",
     paragraphs: [
-      "Faculty and invited guests (such as GAs) sign in with an email and password. Student advisors on the allowlist (for example emridout@olemiss.edu) get a view-only advisor account: they can open Reports and Stats for every course, but cannot create courses, edit attendance, or change other users. Students do not create accounts. They save the email on your Blackboard roster at [Student check-in](/student), then check in with the code shown in class (via QR or check-in link).",
+      "Faculty and invited guests (such as GAs) sign in with an email and password. Student advisors on the allowlist (for example emridout@olemiss.edu and mcclure@olemiss.edu) get a view-only advisor account: they can open Reports and Stats for every course, but cannot create courses, edit attendance, or change other users. Students do not create accounts. They save the email on your Blackboard roster at [Student check-in](/student), then check in with the code shown in class (via QR or check-in link).",
       "Use the header to move between [Courses](/faculty), [Reports](/faculty/reports), [Stats](/faculty/stats), [Manage Courses](/faculty/manage) (course owners only), [Account settings](/faculty/account), and this [Tutorial](/tutorial).",
     ],
     links: [

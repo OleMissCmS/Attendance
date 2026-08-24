@@ -5,7 +5,9 @@ create table if not exists private.advisor_emails (
 );
 
 insert into private.advisor_emails (email)
-values ('emridout@olemiss.edu')
+values
+  ('emridout@olemiss.edu'),
+  ('mcclure@olemiss.edu')
 on conflict (email) do nothing;
 
 create or replace function private.is_advisor_email(p_email text)
