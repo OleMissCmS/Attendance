@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import { signOut } from "@/app/faculty/actions"
 import { Button } from "@/components/ui/button"
-import { hasFacultyAppAccess } from "@/lib/faculty-email"
+import { hasFacultyAppAccess, isPlatformAdminEmail } from "@/lib/faculty-email"
 import type { Profile } from "@/lib/supabase/types"
 
 const navLink =
@@ -55,6 +55,7 @@ export function FacultyNav({
   const pathname = usePathname()
   const faculty = profile ? hasFacultyAppAccess(profile.role) : false
   const courseOwner = profile?.role === "faculty"
+  const platformAdmin = profile ? isPlatformAdminEmail(profile.email) : false
   const [open, setOpen] = useState(false)
   const menuId = useId()
 
@@ -84,6 +85,15 @@ export function FacultyNav({
           label: "Stats",
           match: (path: string) => path.startsWith("/faculty/stats"),
         },
+        ...(platformAdmin
+          ? [
+              {
+                href: "/faculty/analytics",
+                label: "Analytics",
+                match: (path: string) => path.startsWith("/faculty/analytics"),
+              },
+            ]
+          : []),
         ...(courseOwner
           ? [
               {

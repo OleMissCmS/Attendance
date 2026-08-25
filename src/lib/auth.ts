@@ -1,4 +1,7 @@
-import { hasFacultyAppAccess, canManageAttendanceData } from "@/lib/faculty-email"
+import {
+  hasFacultyAppAccess,
+  canManageAttendanceData,
+} from "@/lib/faculty-email"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import type { Database, Profile } from "@/lib/supabase/types"
@@ -61,5 +64,14 @@ export async function requireWritableFaculty(): Promise<Profile> {
 export async function requireCourseOwner(): Promise<Profile> {
   const profile = await requireFaculty()
   if (profile.role !== "faculty") redirect("/faculty")
+  return profile
+}
+
+/** Faculty chrome + platform admin allowlist (usage analytics). */
+export async function requirePlatformAdmin(): Promise<Profile> {
+  const profile = await requireFaculty()
+  const supabase = await createClient()
+  const { data: allowed } = await supabase.rpc("is_platform_admin")
+  if (!allowed) redirect("/faculty")
   return profile
 }

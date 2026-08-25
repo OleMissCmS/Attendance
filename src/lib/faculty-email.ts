@@ -26,3 +26,9 @@ export function isAdvisorRole(role: string) {
 export function canManageAttendanceData(role: string) {
   return role === "faculty" || role === "guest"
 }
+
+/** Platform usage analytics (allowlisted emails; not advisor view-all). */
+export function isPlatformAdminEmail(email: string) {
+  // Keep in sync with private.platform_admin_emails; RPC is authoritative at runtime.
+  return email.trim().toLowerCase() === "chads@olemiss.edu"
+}
