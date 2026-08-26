@@ -8,6 +8,11 @@ import {
   rememberEmail,
 } from "@/lib/device"
 import {
+  clearCheckInRetryEligibility,
+  grantCheckInRetryEligibility,
+  hasCheckInRetryEligibility,
+} from "@/lib/check-in-retry-eligibility"
+import {
   clearRosterAddEligibility,
   grantRosterAddEligibility,
   hasRosterAddEligibility,
@@ -47,6 +52,7 @@ async function completeCheckIn(args: {
   test?: boolean
 }) {
   await clearRosterAddEligibility()
+  await clearCheckInRetryEligibility()
   await rememberEmail(
     args.emailAliased ? preferredStudentEmail(args.email) : args.email,
   )
@@ -69,17 +75,63 @@ export async function submitCheckIn(formData: FormData) {
   const deviceId = await getOrCreateDeviceId()
   const { primary, alts } = rosterEmailHashes(email)
   const emailCipher = encryptPii(email)
+  const canRetryWithoutCode = await hasCheckInRetryEligibility(sessionId)
 
-  const { data, error } = await supabase.rpc("check_in", {
-    p_session_id: sessionId,
-    p_token: token,
-    p_email_hash: primary,
-    p_email_cipher: emailCipher,
-    p_device_id: deviceId,
-    p_is_incognito: isIncognito,
-    p_is_test: allowTestStudentCheckIn(email),
-    p_alt_email_hashes: alts.length ? alts : undefined,
-  })
+  let data: unknown = null
+  let error: { message: string } | null = null
+
+  if (canRetryWithoutCode && (!token || token.length < 6)) {
+    const rostered = await supabase.rpc("check_in_rostered", {
+      p_session_id: sessionId,
+      p_email_hash: primary,
+      p_email_cipher: emailCipher,
+      p_device_id: deviceId,
+      p_is_incognito: isIncognito,
+      p_alt_email_hashes: alts.length ? alts : undefined,
+    })
+    data = rostered.data
+    error = rostered.error
+  } else {
+    const normal = await supabase.rpc("check_in", {
+      p_session_id: sessionId,
+      p_token: token,
+      p_email_hash: primary,
+      p_email_cipher: emailCipher,
+      p_device_id: deviceId,
+      p_is_incognito: isIncognito,
+      p_is_test: allowTestStudentCheckIn(email),
+      p_alt_email_hashes: alts.length ? alts : undefined,
+    })
+    data = normal.data
+    error = normal.error
+
+    const failedEarly =
+      error?.message ||
+      (data &&
+      typeof data === "object" &&
+      (data as { ok?: boolean }).ok === false
+        ? (data as { error?: string }).error || "Check-in failed"
+        : null)
+
+    // After a not-on-roster miss, allow the same session without a live code
+    // once the student fixes their email (rotating code may have expired).
+    if (
+      failedEarly &&
+      /code expired or incorrect/i.test(failedEarly) &&
+      canRetryWithoutCode
+    ) {
+      const rostered = await supabase.rpc("check_in_rostered", {
+        p_session_id: sessionId,
+        p_email_hash: primary,
+        p_email_cipher: emailCipher,
+        p_device_id: deviceId,
+        p_is_incognito: isIncognito,
+        p_alt_email_hashes: alts.length ? alts : undefined,
+      })
+      data = rostered.data
+      error = rostered.error
+    }
+  }
 
   const result = data as {
     ok?: boolean
@@ -102,18 +154,19 @@ export async function submitCheckIn(formData: FormData) {
 
     const params = new URLSearchParams()
     if (/not on this roster/i.test(failedMessage)) {
-      // Separate RPC so RAISE in check_in does not roll back the miss log.
       await logMiss({
         sessionId,
         email,
         deviceId,
         source: "check_in",
       })
-      // Do not bind a bad address; clear any remembered wrong email.
       await clearRememberedEmail()
+      // They proved they had a live code once; let them retry this session
+      // after fixing email without needing a fresh rotating code.
+      await grantCheckInRetryEligibility(sessionId)
       if (token) params.set("t", token)
       params.set("error", "bad_email")
-      if (email) params.set("email", email)
+      // Do not prefills the bad address — force a fresh email entry.
     } else {
       if (token) params.set("t", token)
       params.set("error", failedMessage)

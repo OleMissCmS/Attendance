@@ -16,6 +16,7 @@ export function CheckInForm({
   error,
   autoSubmit = false,
   showRosterAddLink = false,
+  allowExpiredCode = false,
 }: {
   sessionId: string
   email: string
@@ -26,6 +27,8 @@ export function CheckInForm({
   autoSubmit?: boolean
   /** Secondary path after a not-on-roster miss. */
   showRosterAddLink?: boolean
+  /** After a not-on-roster miss, the student may reuse this session without a live code. */
+  allowExpiredCode?: boolean
 }) {
   const [incognito, setIncognito] = useState(false)
   const [tokenValue, setTokenValue] = useState(token)
@@ -178,7 +181,7 @@ export function CheckInForm({
           <Input
             id="token"
             name="token"
-            required
+            required={!allowExpiredCode}
             value={tokenValue}
             onChange={(event) =>
               setTokenValue(event.target.value.toUpperCase().slice(0, 6))
@@ -190,14 +193,16 @@ export function CheckInForm({
           {secondsLeft != null && tokenValue.trim().length === 6 ? (
             <p
               className={
-                secondsLeft === 0
+                secondsLeft === 0 && !allowExpiredCode
                   ? "text-xs font-medium text-destructive"
                   : "text-xs text-muted-foreground"
               }
               aria-live="polite"
             >
               {secondsLeft === 0
-                ? "This code has expired. Enter the newest code from the classroom screen."
+                ? allowExpiredCode
+                  ? "This code’s timer ended, but you can still check in after correcting your email."
+                  : "This code has expired. Enter the newest code from the classroom screen."
                 : `This code will expire in ${secondsLeft} second${secondsLeft === 1 ? "" : "s"}.`}
             </p>
           ) : null}

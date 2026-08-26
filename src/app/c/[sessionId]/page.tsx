@@ -57,7 +57,7 @@ export default async function CheckInPage({
 
   const badEmailGuidance =
     error === "bad_email"
-      ? "That email is not on this roster. Use your Ole Miss student email ending in @go.olemiss.edu (not @olemiss.edu), then try again."
+      ? "That email is not on this roster. Enter your Ole Miss student email ending in @go.olemiss.edu, then try again. You can reuse the classroom code already on this page even if the timer has expired."
       : undefined
 
   const checkInError =
@@ -150,6 +150,7 @@ export default async function CheckInPage({
                 expiresAt={expiresAt}
                 error={checkInError}
                 showRosterAddLink={error === "bad_email"}
+                allowExpiredCode={error === "bad_email"}
                 autoSubmit={
                   Boolean(remembered) &&
                   Boolean(t?.trim()) &&

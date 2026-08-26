@@ -38,5 +38,11 @@ export async function rememberEmail(email: string) {
 /** Clear remembered student email (e.g. after a failed check-in with a bad address). */
 export async function clearRememberedEmail() {
   const store = await cookies()
-  store.delete(EMAIL_COOKIE)
+  store.set(EMAIL_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  })
 }
