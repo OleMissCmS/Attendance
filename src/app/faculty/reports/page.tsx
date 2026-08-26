@@ -382,12 +382,15 @@ export default async function ReportsPage({
       )
       const attended = presentIds.size
       const missed = oldestFirst.length - attended
-      noShowRows.push({
-        ...identity,
-        attended,
-        missed,
-        session_count: oldestFirst.length,
-      })
+      // No Show = never checked in for any session in the filtered range.
+      if (oldestFirst.length > 0 && attended === 0) {
+        noShowRows.push({
+          ...identity,
+          attended,
+          missed,
+          session_count: oldestFirst.length,
+        })
+      }
 
       if (oldestFirst.length) {
         const streak = maxConsecutiveAbsences(oldestFirst, presentIds)
@@ -805,8 +808,8 @@ export default async function ReportsPage({
                   <TableHeader>
                     <TableRow>
                       {identityHeads}
-                      <TableHead>Attended</TableHead>
-                      <TableHead>Missed</TableHead>
+                      <TableHead className="text-center">Attended</TableHead>
+                      <TableHead className="text-center">Missed</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -821,8 +824,8 @@ export default async function ReportsPage({
                           <TableCell>{row.firstName || "—"}</TableCell>
                           <TableCell>{row.username || "—"}</TableCell>
                           <TableCell>{row.studentId || "—"}</TableCell>
-                          <TableCell>{row.attended}</TableCell>
-                          <TableCell>{row.missed}</TableCell>
+                          <TableCell className="text-center">{row.attended}</TableCell>
+                          <TableCell className="text-center">{row.missed}</TableCell>
                         </TableRow>
                       ))
                     ) : (
@@ -892,8 +895,8 @@ export default async function ReportsPage({
                       {identityHeads}
                       <TableHead>Longest streak</TableHead>
                       <TableHead>Current streak</TableHead>
-                      <TableHead>Attended</TableHead>
-                      <TableHead>Missed</TableHead>
+                      <TableHead className="text-center">Attended</TableHead>
+                      <TableHead className="text-center">Missed</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -910,8 +913,8 @@ export default async function ReportsPage({
                           <TableCell>{row.studentId || "—"}</TableCell>
                           <TableCell>{row.streak}</TableCell>
                           <TableCell>{row.current_streak}</TableCell>
-                          <TableCell>{row.attended}</TableCell>
-                          <TableCell>{row.missed}</TableCell>
+                          <TableCell className="text-center">{row.attended}</TableCell>
+                          <TableCell className="text-center">{row.missed}</TableCell>
                         </TableRow>
                       ))
                     ) : (
