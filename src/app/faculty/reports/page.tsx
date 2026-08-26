@@ -1,6 +1,8 @@
 import { SiteChrome } from "@/components/site-chrome"
 import { AttendanceMarkToggle } from "@/components/attendance-mark-toggle"
 import { DownloadButton } from "@/components/download-button"
+import { ExperienceReportingPanel } from "@/components/experience-reporting-panel"
+import { ExperienceValidationPanel } from "@/components/experience-validation-panel"
 import {
   ReportAtRiskThreshold,
   ReportFlagsFilter,
@@ -132,7 +134,8 @@ export default async function ReportsPage({
 
   const studentQuery = (filters.student ?? "").trim()
   const studentHashes = studentLookupFromFilter(studentQuery)
-  const flagFilter = filters.flags ?? "all"
+  const flagFilter =
+    filters.flags === "flagged" ? "all" : (filters.flags ?? "all")
   const streakThreshold = Math.max(1, Number(filters.streak) || 3)
 
   const sectionIds = sections.map((section) => section.id)
@@ -422,7 +425,6 @@ export default async function ReportsPage({
         const hasLate = Boolean(lateFlag)
         const hasIncognito = Boolean(record.is_incognito)
         const flagged = hasIncognito || hasLate
-        if (flagFilter === "flagged" && !flagged) continue
         if (flagFilter === "incognito" && !hasIncognito) continue
         if (flagFilter === "late" && !hasLate) continue
         if (flagFilter === "conflict") continue
@@ -499,6 +501,7 @@ export default async function ReportsPage({
 
   noShowRows.sort(
     (a, b) =>
+      a.section.localeCompare(b.section) ||
       a.lastName.localeCompare(b.lastName) ||
       a.firstName.localeCompare(b.firstName),
   )
@@ -522,6 +525,31 @@ export default async function ReportsPage({
         headers: [...STUDENT_HEADERS],
         rows: [] as string[][],
       }
+
+  const experienceSessions = singleSection
+    ? (sessions ?? []).filter(
+        (session) => session.section_id === singleSection.id,
+      )
+    : []
+  const experienceRoster = singleSection
+    ? (enrollments ?? [])
+        .filter((row) => row.section_id === singleSection.id)
+        .filter((row) => matchesStudentLookup(row.email_hash, studentHashes))
+        .map((row) => {
+          const student = decryptEnrollment(row)
+          const attended = experienceSessions.filter((session) =>
+            presentKeys.has(`${session.id}:${row.email_hash}`),
+          ).length
+          return {
+            enrollmentId: row.id,
+            studentId: student.studentId,
+            lastName: student.lastName,
+            firstName: student.firstName,
+            username: student.username,
+            attended,
+          }
+        })
+    : []
 
   const stickyCol =
     "sticky left-0 z-10 bg-card shadow-[1px_0_0_0] shadow-border"
@@ -593,7 +621,7 @@ export default async function ReportsPage({
             <p className="text-sm text-muted-foreground">
               Leave course and section blank to include all data you are
               authorized to see. Results update as you change filters.
-              Blackboard download needs one section.
+              Blackboard and Experience downloads need one section.
             </p>
           </CardHeader>
           <CardContent>
@@ -628,6 +656,80 @@ export default async function ReportsPage({
                 streak: filters.streak,
               }}
             />
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-[#333F58]/30 pt-0">
+          <CardHeader className="space-y-1 bg-[#000D26] px-4 py-2 text-white">
+            <CardTitle className={reportTitleClass}>Experience Reporting</CardTitle>
+            <p className={reportHintClass}>
+              Generate a midterm PR/NS file for Ellucian Experience, then check
+              the validation report Experience returns. Select one course and
+              section in the filters above.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-8 pt-6">
+            <Card className={reportCardClass}>
+              <CardHeader className={altReportHeaderClass}>
+                <div>
+                  <CardTitle className={altReportTitleClass}>
+                    Midterm attendance export
+                  </CardTitle>
+                  <p className={altReportHintClass}>
+                    Enter Term Code and CRN from the Experience course listing,
+                    then download the XLSX (saved automatically for this
+                    section).
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {singleSection ? (
+                  <ExperienceReportingPanel
+                    key={singleSection.id}
+                    sectionId={singleSection.id}
+                    courseLabel={courseLabel(
+                      courseFromRelation(singleSection.courses),
+                    )}
+                    sectionLabel={formatSectionLabel(singleSection)}
+                    initialCrn={singleSection.banner_crn ?? ""}
+                    initialTermCode={singleSection.banner_term_code ?? ""}
+                    sessionCount={experienceSessions.length}
+                    roster={experienceRoster}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Choose a course and section in Optional filters to export.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className={reportCardClass}>
+              <CardHeader className={altReportHeaderClass}>
+                <div>
+                  <CardTitle className={altReportTitleClass}>
+                    Validation report checker
+                  </CardTitle>
+                  <p className={altReportHintClass}>
+                    Upload Experience&apos;s validation / import results file to
+                    see problem students and fix or remove them on PSOA.
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {singleSection ? (
+                  <ExperienceValidationPanel
+                    key={`validation-${singleSection.id}`}
+                    sectionId={singleSection.id}
+                    roster={experienceRoster}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Choose a course and section in Optional filters first.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </CardContent>
         </Card>
 

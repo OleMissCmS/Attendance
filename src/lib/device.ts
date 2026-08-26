@@ -34,3 +34,9 @@ export async function rememberEmail(email: string) {
     maxAge: 60 * 60 * 24 * 400,
   })
 }
+
+/** Clear remembered student email (e.g. after a failed check-in with a bad address). */
+export async function clearRememberedEmail() {
+  const store = await cookies()
+  store.delete(EMAIL_COOKIE)
+}

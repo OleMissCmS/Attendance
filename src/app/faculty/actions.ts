@@ -8,12 +8,18 @@ import {
   encryptPii,
   hashEmail,
   usernameFromEmail,
+  decryptEnrollment,
 } from "@/lib/pii"
 import { parseBlackboardRoster, parseRosterFile } from "@/lib/blackboard-roster"
 import {
   collapseWhitespace,
   isPlaceholderValue,
 } from "@/lib/student-identity"
+import { buildRosterDiff } from "@/lib/roster-diff"
+import {
+  openRosterSyncPayload,
+  sealRosterSyncPayload,
+} from "@/lib/roster-sync-payload"
 
 export async function signOut() {
   const supabase = await createClient()
@@ -250,6 +256,173 @@ export async function addRoster(formData: FormData) {
   redirect(`/faculty/sections/${sectionId}`)
 }
 
+export type RosterSyncPreviewState = {
+  payload: string
+  onlyInFile: {
+    emailHash: string
+    enrollmentId: number | null
+    lastName: string
+    firstName: string
+    username: string
+    studentId: string
+    email: string
+    name: string
+  }[]
+  onlyInPsoa: {
+    emailHash: string
+    enrollmentId: number | null
+    lastName: string
+    firstName: string
+    username: string
+    studentId: string
+    email: string
+    name: string
+  }[]
+  inBoth: {
+    emailHash: string
+    enrollmentId: number | null
+    lastName: string
+    firstName: string
+    username: string
+    studentId: string
+    email: string
+    name: string
+  }[]
+}
+
+export async function previewRosterSync(
+  formData: FormData,
+): Promise<{ preview?: RosterSyncPreviewState; error?: string }> {
+  await requireWritableFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  if (!sectionId) return { error: "Missing section." }
+
+  const file = formData.get("roster_file")
+  let people = [] as Awaited<ReturnType<typeof parseRosterFile>>
+  if (file instanceof File && file.size > 0) {
+    people = await parseRosterFile(file)
+  } else {
+    const raw = String(formData.get("roster") ?? "")
+    people = parseBlackboardRoster(raw)
+  }
+  if (!people.length) {
+    return {
+      error:
+        "No students found. Use a Blackboard Grade Center file with Username or Student Email Address.",
+    }
+  }
+
+  const { data: enrollments, error } = await supabase
+    .from("enrollments")
+    .select("*")
+    .eq("section_id", sectionId)
+  if (error) return { error: error.message }
+
+  const existing = (enrollments ?? []).map((row) => {
+    const student = decryptEnrollment(row)
+    return {
+      id: row.id,
+      email_hash: row.email_hash,
+      lastName: student.lastName,
+      firstName: student.firstName,
+      username: student.username,
+      studentId: student.studentId,
+      email: student.email,
+      name: student.name,
+    }
+  })
+
+  const diff = buildRosterDiff(existing, people, hashEmail)
+  const payload = sealRosterSyncPayload({
+    sectionId,
+    onlyInFile: diff.onlyInFile,
+    onlyInPsoa: diff.onlyInPsoa,
+  })
+
+  return {
+    preview: {
+      payload,
+      onlyInFile: diff.onlyInFile,
+      onlyInPsoa: diff.onlyInPsoa,
+      inBoth: diff.inBoth,
+    },
+  }
+}
+
+export async function applyRosterSync(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  await requireWritableFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  const token = String(formData.get("payload") ?? "")
+  const addHashes = new Set(
+    String(formData.get("add_hashes") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  )
+  const removeIds = String(formData.get("remove_ids") ?? "")
+    .split(",")
+    .map((value) => Number(value))
+    .filter((id) => Number.isFinite(id) && id > 0)
+
+  if (!sectionId || !token) return { error: "Missing sync data. Upload again." }
+  const opened = openRosterSyncPayload(token)
+  if (!opened || opened.sectionId !== sectionId) {
+    return { error: "Roster comparison expired. Upload the file again." }
+  }
+
+  const toAdd = opened.onlyInFile.filter((row) => addHashes.has(row.emailHash))
+  if (toAdd.length) {
+    const { data: existing } = await supabase
+      .from("enrollments")
+      .select("email_hash")
+      .eq("section_id", sectionId)
+      .in(
+        "email_hash",
+        toAdd.map((row) => row.emailHash),
+      )
+    const already = new Set((existing ?? []).map((row) => row.email_hash))
+    const rows = toAdd
+      .filter((row) => !already.has(row.emailHash))
+      .map((row) => ({
+        section_id: sectionId,
+        email_hash: row.emailHash,
+        email_cipher: encryptPii(row.email),
+        name_cipher: encryptOptionalPii(row.name),
+        last_name_cipher: encryptOptionalPii(row.lastName),
+        first_name_cipher: encryptOptionalPii(row.firstName),
+        username_cipher: encryptPii(
+          usernameFromEmail(row.email) || row.username,
+        ),
+        student_id_cipher: encryptOptionalPii(row.studentId),
+      }))
+    if (rows.length) {
+      const { error } = await supabase.from("enrollments").insert(rows)
+      if (error) return { error: error.message }
+    }
+  }
+
+  const allowedRemoveIds = new Set(
+    opened.onlyInPsoa
+      .map((row) => row.enrollmentId)
+      .filter((id): id is number => typeof id === "number" && id > 0),
+  )
+  const idsToDelete = removeIds.filter((id) => allowedRemoveIds.has(id))
+  if (idsToDelete.length) {
+    const { error } = await supabase
+      .from("enrollments")
+      .delete()
+      .eq("section_id", sectionId)
+      .in("id", idsToDelete)
+    if (error) return { error: error.message }
+  }
+
+  return {}
+}
+
 export async function removeEnrollment(formData: FormData) {
   await requireWritableFaculty()
   const supabase = await createClient()
@@ -257,6 +430,57 @@ export async function removeEnrollment(formData: FormData) {
   const enrollmentId = Number(formData.get("enrollment_id"))
   await supabase.from("enrollments").delete().eq("id", enrollmentId)
   redirect(`/faculty/sections/${sectionId}`)
+}
+
+export async function updateEnrollmentIdentity(formData: FormData): Promise<{
+  error?: string
+}> {
+  await requireWritableFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  const enrollmentId = Number(formData.get("enrollment_id"))
+  const lastName = String(formData.get("last_name") ?? "").trim()
+  const firstName = String(formData.get("first_name") ?? "").trim()
+  const username = String(formData.get("username") ?? "").trim().toLowerCase()
+  const studentId = String(formData.get("student_id") ?? "").trim()
+  if (!sectionId || !enrollmentId) return { error: "Missing enrollment." }
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .update({
+      last_name_cipher: encryptOptionalPii(lastName),
+      first_name_cipher: encryptOptionalPii(firstName),
+      username_cipher: username ? encryptPii(username) : null,
+      student_id_cipher: encryptOptionalPii(studentId),
+      name_cipher: encryptOptionalPii(
+        `${firstName} ${lastName}`.replace(/\s+/g, " ").trim(),
+      ),
+    })
+    .eq("id", enrollmentId)
+    .eq("section_id", sectionId)
+    .select("id")
+  if (error) return { error: error.message }
+  if (!data?.length) return { error: "Could not update that student." }
+  return {}
+}
+
+export async function deleteEnrollmentQuietly(formData: FormData): Promise<{
+  error?: string
+}> {
+  await requireWritableFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  const enrollmentId = Number(formData.get("enrollment_id"))
+  if (!sectionId || !enrollmentId) return { error: "Missing enrollment." }
+  const { data, error } = await supabase
+    .from("enrollments")
+    .delete()
+    .eq("id", enrollmentId)
+    .eq("section_id", sectionId)
+    .select("id")
+  if (error) return { error: error.message }
+  if (!data?.length) return { error: "Could not remove that student." }
+  return {}
 }
 
 export async function startSession(formData: FormData) {
@@ -421,4 +645,39 @@ export async function resolveRosterAddRequest(formData: FormData) {
   })
   if (error) redirect(`/faculty/sections/${sectionId}?error=request`)
   redirect(`/faculty/sections/${sectionId}`)
+}
+
+export async function saveSectionBannerIds(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  await requireWritableFaculty()
+  const supabase = await createClient()
+  const sectionId = Number(formData.get("section_id"))
+  const bannerCrn = String(formData.get("banner_crn") ?? "").trim()
+  const bannerTermCode = String(formData.get("banner_term_code") ?? "").trim()
+  if (!sectionId) return { error: "Missing section." }
+  if (!bannerCrn || !bannerTermCode) {
+    return { error: "Enter both Term Code and CRN." }
+  }
+  if (!/^\d{5,6}$/.test(bannerTermCode)) {
+    return { error: "Term Code should look like 202710 (5–6 digits)." }
+  }
+  if (!/^\d{3,6}$/.test(bannerCrn)) {
+    return { error: "CRN should be a numeric course reference number." }
+  }
+  const { data, error } = await supabase
+    .from("sections")
+    .update({
+      banner_crn: bannerCrn,
+      banner_term_code: bannerTermCode,
+    })
+    .eq("id", sectionId)
+    .select("id")
+  if (error) return { error: error.message }
+  if (!data?.length) {
+    return {
+      error: "Could not save. You need to own this course to store CRN and Term Code.",
+    }
+  }
+  return {}
 }

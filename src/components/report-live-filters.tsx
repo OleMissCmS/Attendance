@@ -198,7 +198,6 @@ export function ReportFlagsFilter({
         onChange={(event) => navigate({ flags: event.target.value })}
       >
         <option value="all">All</option>
-        <option value="flagged">Flagged only</option>
         <option value="incognito">Private/incognito browser</option>
         <option value="late">New phone after 4th class</option>
         <option value="conflict">Phone already used by another student</option>

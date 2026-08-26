@@ -409,6 +409,8 @@ export type Database = {
       }
       sections: {
         Row: {
+          banner_crn: string | null
+          banner_term_code: string | null
           course_id: number
           created_at: string
           deleted_at: string | null
@@ -418,6 +420,8 @@ export type Database = {
           term: string
         }
         Insert: {
+          banner_crn?: string | null
+          banner_term_code?: string | null
           course_id: number
           created_at?: string
           deleted_at?: string | null
@@ -427,6 +431,8 @@ export type Database = {
           term: string
         }
         Update: {
+          banner_crn?: string | null
+          banner_term_code?: string | null
           course_id?: number
           created_at?: string
           deleted_at?: string | null
@@ -465,6 +471,31 @@ export type Database = {
           p_token: string
         }
         Returns: Json
+      }
+      check_in_rostered: {
+        Args: {
+          p_alt_email_hashes?: string[]
+          p_device_id: string
+          p_email_cipher: string
+          p_email_hash: string
+          p_is_incognito?: boolean
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      list_roster_miss_attempts: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      log_roster_miss_attempt: {
+        Args: {
+          p_device_id?: string
+          p_email_cipher: string
+          p_email_hash: string
+          p_session_id: string
+          p_source?: string
+        }
+        Returns: undefined
       }
       end_session: { Args: { p_session_id: string }; Returns: undefined }
       invite_faculty: { Args: { p_email: string }; Returns: undefined }

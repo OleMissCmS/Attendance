@@ -2,7 +2,11 @@
 
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { getOrCreateDeviceId, rememberEmail } from "@/lib/device"
+import {
+  clearRememberedEmail,
+  getOrCreateDeviceId,
+  rememberEmail,
+} from "@/lib/device"
 import {
   clearRosterAddEligibility,
   grantRosterAddEligibility,
@@ -19,6 +23,41 @@ import {
 import { collapseWhitespace } from "@/lib/student-identity"
 import { allowTestStudentCheckIn } from "@/lib/test-mode"
 
+async function logMiss(args: {
+  sessionId: string
+  email: string
+  deviceId: string
+  source: "check_in" | "roster_add_enrolled"
+}) {
+  const { primary } = rosterEmailHashes(args.email)
+  const supabase = await createClient()
+  await supabase.rpc("log_roster_miss_attempt", {
+    p_session_id: args.sessionId,
+    p_email_hash: primary,
+    p_email_cipher: encryptPii(args.email),
+    p_device_id: args.deviceId,
+    p_source: args.source,
+  })
+}
+
+async function completeCheckIn(args: {
+  sessionId: string
+  email: string
+  emailAliased?: boolean
+  test?: boolean
+}) {
+  await clearRosterAddEligibility()
+  await rememberEmail(
+    args.emailAliased ? preferredStudentEmail(args.email) : args.email,
+  )
+  const params = new URLSearchParams({
+    done: "1",
+    at: new Date().toISOString(),
+  })
+  if (args.test) params.set("test", "1")
+  redirect(`/c/${args.sessionId}?${params.toString()}`)
+}
+
 export async function submitCheckIn(formData: FormData) {
   const supabase = await createClient()
   const sessionId = String(formData.get("session_id") ?? "")
@@ -29,12 +68,13 @@ export async function submitCheckIn(formData: FormData) {
   const isIncognito = String(formData.get("incognito") ?? "") === "1"
   const deviceId = await getOrCreateDeviceId()
   const { primary, alts } = rosterEmailHashes(email)
+  const emailCipher = encryptPii(email)
 
   const { data, error } = await supabase.rpc("check_in", {
     p_session_id: sessionId,
     p_token: token,
     p_email_hash: primary,
-    p_email_cipher: encryptPii(email),
+    p_email_cipher: emailCipher,
     p_device_id: deviceId,
     p_is_incognito: isIncognito,
     p_is_test: allowTestStudentCheckIn(email),
@@ -51,40 +91,56 @@ export async function submitCheckIn(formData: FormData) {
     (result && result.ok === false ? result.error || "Check-in failed" : null)
 
   if (failedMessage) {
-    // Re-scan after a successful check-in: show confirmation instead of an error.
     if (/already checked in/i.test(failedMessage)) {
-      await clearRosterAddEligibility()
-      await rememberEmail(
-        result?.email_aliased ? preferredStudentEmail(email) : email,
-      )
-      const alreadyParams = new URLSearchParams({
-        done: "1",
-        at: new Date().toISOString(),
+      await completeCheckIn({
+        sessionId,
+        email,
+        emailAliased: result?.email_aliased,
+        test: allowTestStudentCheckIn(email),
       })
-      if (allowTestStudentCheckIn(email)) alreadyParams.set("test", "1")
-      redirect(`/c/${sessionId}?${alreadyParams.toString()}`)
     }
 
     const params = new URLSearchParams()
     if (/not on this roster/i.test(failedMessage)) {
-      // Presence already proved via a valid classroom code; do not keep `t=`
-      // (expired codes) on the URL or re-bind this flow to the 30s window.
-      await grantRosterAddEligibility(sessionId)
-      params.set("error", "not_roster")
+      // Separate RPC so RAISE in check_in does not roll back the miss log.
+      await logMiss({
+        sessionId,
+        email,
+        deviceId,
+        source: "check_in",
+      })
+      // Do not bind a bad address; clear any remembered wrong email.
+      await clearRememberedEmail()
+      if (token) params.set("t", token)
+      params.set("error", "bad_email")
       if (email) params.set("email", email)
     } else {
       if (token) params.set("t", token)
       params.set("error", failedMessage)
+      if (email) params.set("email", email)
     }
     redirect(`/c/${sessionId}?${params.toString()}`)
   }
 
-  await clearRosterAddEligibility()
-  await rememberEmail(
-    result?.email_aliased ? preferredStudentEmail(email) : email,
-  )
-  const params = new URLSearchParams({ done: "1", at: new Date().toISOString() })
-  if (allowTestStudentCheckIn(email)) params.set("test", "1")
+  await completeCheckIn({
+    sessionId,
+    email,
+    emailAliased: result?.email_aliased,
+    test: allowTestStudentCheckIn(email),
+  })
+}
+
+export async function startRosterAddRequest(formData: FormData) {
+  const sessionId = String(formData.get("session_id") ?? "")
+  const email = normalizeEmail(String(formData.get("email") ?? ""))
+  const token = String(formData.get("token") ?? "")
+    .trim()
+    .toUpperCase()
+  if (!sessionId) redirect("/student")
+  await grantRosterAddEligibility(sessionId)
+  const params = new URLSearchParams({ request: "add" })
+  if (email) params.set("email", email)
+  if (token) params.set("t", token)
   redirect(`/c/${sessionId}?${params.toString()}`)
 }
 
@@ -99,16 +155,16 @@ export async function requestRosterAddition(formData: FormData) {
   const checkInEmail = normalizeEmail(
     String(formData.get("check_in_email") ?? email),
   )
+  const deviceId = await getOrCreateDeviceId()
 
   const fail = async (code: string) => {
-    // Eligibility lost or session gone: return to check-in, not the roster form.
     if (code === "expired" || code === "ended") {
       await clearRosterAddEligibility()
       const params = new URLSearchParams({ error: code })
       if (email) params.set("email", email)
       redirect(`/c/${sessionId}?${params.toString()}`)
     }
-    const params = new URLSearchParams({ error: "not_roster", request: code })
+    const params = new URLSearchParams({ request: "add", error: code })
     if (email) params.set("email", email)
     redirect(`/c/${sessionId}?${params.toString()}`)
   }
@@ -138,18 +194,49 @@ export async function requestRosterAddition(formData: FormData) {
   if (error) {
     if (/session has ended/i.test(error.message)) await fail("ended")
     if (/session not found|no live session/i.test(error.message)) await fail("ended")
-    if (/already on this roster/i.test(error.message)) await fail("enrolled")
+    if (/already on this roster/i.test(error.message)) {
+      // Email is on the roster — check them in without requiring a live code.
+      const isIncognito = String(formData.get("incognito") ?? "") === "1"
+      const { data, error: checkInError } = await supabase.rpc(
+        "check_in_rostered",
+        {
+          p_session_id: sessionId,
+          p_email_hash: primary,
+          p_email_cipher: encryptPii(email),
+          p_device_id: deviceId,
+          p_is_incognito: isIncognito,
+          p_alt_email_hashes: alts.length ? alts : undefined,
+        },
+      )
+      if (checkInError) {
+        await logMiss({
+          sessionId,
+          email,
+          deviceId,
+          source: "roster_add_enrolled",
+        })
+        await fail("failed")
+      }
+      const payload = data as { email_aliased?: boolean } | null
+      await completeCheckIn({
+        sessionId,
+        email,
+        emailAliased: payload?.email_aliased,
+        test: allowTestStudentCheckIn(email),
+      })
+    }
     await fail("failed")
   }
 
   await clearRosterAddEligibility()
-  await rememberEmail(email)
+  // Do not bind until faculty accepts and they successfully check in.
   redirect(`/c/${sessionId}?requested=1`)
 }
 
 export async function saveStudentEmail(formData: FormData) {
   const email = normalizeEmail(String(formData.get("email") ?? ""))
   if (!email.includes("@")) redirect("/student?error=email")
+  // Remembering for convenience is OK; device_identities bind only on successful check-in.
   await rememberEmail(email)
   redirect("/student?saved=1")
 }

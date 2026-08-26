@@ -28,12 +28,12 @@ export default async function SectionPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; synced?: string }>
 }) {
   const profile = await requireFaculty()
   const canManage = canManageAttendanceData(profile.role)
   const { id } = await params
-  const { error } = await searchParams
+  const { error, synced } = await searchParams
   const sectionId = Number(id)
   const supabase = await createClient()
 
@@ -105,6 +105,11 @@ export default async function SectionPage({
         {error === "request" ? (
           <p role="alert" className="text-sm font-medium text-[#CE1126]">
             Could not update that roster request. Try again.
+          </p>
+        ) : null}
+        {synced === "1" ? (
+          <p className="text-sm font-medium text-[#000D26]">
+            Roster updated from your Blackboard comparison.
           </p>
         ) : null}
 
@@ -269,39 +274,48 @@ export default async function SectionPage({
             </CardHeader>
             <CardContent className="space-y-4">
               {canManage ? (
-              <form action={addRoster} className="space-y-3">
-                <input type="hidden" name="section_id" value={sectionId} />
-                <div className="space-y-1">
-                  <Label htmlFor="roster_file">Blackboard Grade Center file</Label>
-                  <Input
-                    id="roster_file"
-                    name="roster_file"
-                    type="file"
-                    accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    CSV, XLS, or XLSX from Blackboard Grade Center or
-                    Insight/Experience. Assignment columns are ignored. Email is
-                    Username@go.olemiss.edu (or the address before @ from Student
-                    Email Address). Required: Username or Student Email Address.
-                    Also include Last Name / Student Last Name, First Name /
-                    Student First Name, and Student ID / Student Number when
-                    available.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="roster">Or paste Grade Center text</Label>
-                  <Textarea
-                    id="roster"
-                    name="roster"
-                    rows={6}
-                    placeholder={
-                      "(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"
-                    }
-                  />
-                </div>
-                <Button type="submit">Add to roster</Button>
-              </form>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  When Blackboard enrollment changes, upload a fresh Grade
+                  Center file and choose who to add, remove, or keep.
+                </p>
+                <Button asChild>
+                  <Link href={`/faculty/sections/${sectionId}/roster-sync`}>
+                    Update roster from Blackboard
+                  </Link>
+                </Button>
+                <details className="rounded-md border px-3 py-2">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Quick add only (no removals)
+                  </summary>
+                  <form action={addRoster} className="mt-3 space-y-3">
+                    <input type="hidden" name="section_id" value={sectionId} />
+                    <div className="space-y-1">
+                      <Label htmlFor="roster_file">Blackboard Grade Center file</Label>
+                      <Input
+                        id="roster_file"
+                        name="roster_file"
+                        type="file"
+                        accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="roster">Or paste Grade Center text</Label>
+                      <Textarea
+                        id="roster"
+                        name="roster"
+                        rows={4}
+                        placeholder={
+                          "(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"
+                        }
+                      />
+                    </div>
+                    <Button type="submit" variant="secondary">
+                      Add new students only
+                    </Button>
+                  </form>
+                </details>
+              </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   View-only roster. Advisors cannot add or remove students.

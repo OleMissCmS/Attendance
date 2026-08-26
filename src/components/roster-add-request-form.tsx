@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { requestRosterAddition } from "@/app/c/actions"
+import { detectIncognito } from "@/lib/incognito"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,29 +18,27 @@ export function RosterAddRequestForm({
   error?: string
   sessionEnded?: boolean
 }) {
-  const alreadyEnrolled = Boolean(error?.includes("already on this roster"))
+  const [incognito, setIncognito] = useState(false)
 
-  if (alreadyEnrolled) {
-    return (
-      <div className="space-y-3">
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Rosters use @go.olemiss.edu. Enter that address on the check-in form
-          (reload or scan the QR again) instead of requesting a roster add.
-        </p>
-      </div>
-    )
-  }
+  useEffect(() => {
+    let cancelled = false
+    void detectIncognito().then((value) => {
+      if (!cancelled) setIncognito(value)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <form action={requestRosterAddition} className="space-y-3">
       <input type="hidden" name="session_id" value={sessionId} />
       <input type="hidden" name="check_in_email" value={email} />
+      <input type="hidden" name="incognito" value={incognito ? "1" : "0"} />
       <p className="text-sm text-destructive">
         You are not on this roster. Submit a roster addition request for your
-        instructor.
+        instructor. If your email is already enrolled, you will be checked in
+        automatically.
       </p>
       <p className="text-sm text-muted-foreground">
         Take your time filling this out. You do not need a new classroom code.

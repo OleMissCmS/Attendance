@@ -46,25 +46,38 @@ export default async function CheckInPage({
     section_label: string
     ended: boolean
   }
+
+  // Roster form only when the student explicitly chooses "request add"
+  // (not on first not-on-roster failure — they retry check-in with guidance).
   const showRosterForm =
     done !== "1" &&
     requested !== "1" &&
-    (error === "not_roster" || rosterEligible)
+    request === "add" &&
+    (rosterEligible || error === "not_roster")
+
+  const badEmailGuidance =
+    error === "bad_email"
+      ? "That email is not on this roster. Use your Ole Miss student email ending in @go.olemiss.edu (not @olemiss.edu), then try again."
+      : undefined
+
   const checkInError =
     error === "expired"
       ? "Your roster request window expired. Enter the current classroom code to start again."
       : error === "ended"
         ? "This attendance session is no longer available. Ask your instructor to add you to the roster."
-        : error === "not_roster"
-          ? undefined
-          : error
+        : badEmailGuidance
+          ? badEmailGuidance
+          : error && error !== "not_roster" && error !== "bad_email"
+            ? error
+            : undefined
+
   const requestError =
-    request === "missing"
+    error === "missing" || request === "missing"
       ? "Enter last name, first name, network ID, student ID, and email."
-      : request === "enrolled"
-        ? "That email is already on this roster (often as username@go.olemiss.edu). Try checking in again with that address."
-        : request === "failed"
-          ? "Could not submit that request. Try again."
+      : error === "failed" || request === "failed"
+        ? "Could not submit that request. Try again."
+        : error === "enrolled"
+          ? "That email is already on this roster. Checking you in…"
           : undefined
 
   return (
@@ -136,6 +149,7 @@ export default async function CheckInPage({
                 token={t?.toUpperCase() ?? ""}
                 expiresAt={expiresAt}
                 error={checkInError}
+                showRosterAddLink={error === "bad_email"}
                 autoSubmit={
                   Boolean(remembered) &&
                   Boolean(t?.trim()) &&

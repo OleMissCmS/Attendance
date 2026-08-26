@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, useTransition } from "react"
-import { submitCheckIn } from "@/app/c/actions"
+import { startRosterAddRequest, submitCheckIn } from "@/app/c/actions"
 import { detectIncognito } from "@/lib/incognito"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ export function CheckInForm({
   expiresAt,
   error,
   autoSubmit = false,
+  showRosterAddLink = false,
 }: {
   sessionId: string
   email: string
@@ -23,6 +24,8 @@ export function CheckInForm({
   error?: string
   /** When true, device already has a remembered email and QR code is present. */
   autoSubmit?: boolean
+  /** Secondary path after a not-on-roster miss. */
+  showRosterAddLink?: boolean
 }) {
   const [incognito, setIncognito] = useState(false)
   const [tokenValue, setTokenValue] = useState(token)
@@ -153,68 +156,83 @@ export function CheckInForm({
   }
 
   return (
-    <form action={submitCheckIn} className="space-y-3">
-      <input type="hidden" name="session_id" value={sessionId} />
-      <input type="hidden" name="incognito" value={incognito ? "1" : "0"} />
-      <div className="space-y-1">
-        <Label htmlFor="email">Your school email</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          required
-          defaultValue={email}
-          placeholder="(e.g. you@go.olemiss.edu)"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="token">Classroom code</Label>
-        <Input
-          id="token"
-          name="token"
-          required
-          value={tokenValue}
-          onChange={(event) =>
-            setTokenValue(event.target.value.toUpperCase().slice(0, 6))
-          }
-          maxLength={6}
-          className="font-mono text-2xl tracking-[0.4em] uppercase"
-          placeholder="(e.g. ABC123)"
-        />
-        {secondsLeft != null && tokenValue.trim().length === 6 ? (
-          <p
-            className={
-              secondsLeft === 0
-                ? "text-xs font-medium text-destructive"
-                : "text-xs text-muted-foreground"
+    <div className="space-y-3">
+      <form action={submitCheckIn} className="space-y-3">
+        <input type="hidden" name="session_id" value={sessionId} />
+        <input type="hidden" name="incognito" value={incognito ? "1" : "0"} />
+        <div className="space-y-1">
+          <Label htmlFor="email">Your school email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required
+            defaultValue={email}
+            placeholder="(e.g. you@go.olemiss.edu)"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="token">Classroom code</Label>
+          <Input
+            id="token"
+            name="token"
+            required
+            value={tokenValue}
+            onChange={(event) =>
+              setTokenValue(event.target.value.toUpperCase().slice(0, 6))
             }
-            aria-live="polite"
-          >
-            {secondsLeft === 0
-              ? "This code has expired. Enter the newest code from the classroom screen."
-              : `This code will expire in ${secondsLeft} second${secondsLeft === 1 ? "" : "s"}.`}
+            maxLength={6}
+            className="font-mono text-2xl tracking-[0.4em] uppercase"
+            placeholder="(e.g. ABC123)"
+          />
+          {secondsLeft != null && tokenValue.trim().length === 6 ? (
+            <p
+              className={
+                secondsLeft === 0
+                  ? "text-xs font-medium text-destructive"
+                  : "text-xs text-muted-foreground"
+              }
+              aria-live="polite"
+            >
+              {secondsLeft === 0
+                ? "This code has expired. Enter the newest code from the classroom screen."
+                : `This code will expire in ${secondsLeft} second${secondsLeft === 1 ? "" : "s"}.`}
+            </p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            No email login. This phone can only check in one student.
+          </p>
+        </div>
+        {incognito ? (
+          <p className="text-sm text-amber-700">
+            Private/incognito browsing was detected. This check-in will be
+            flagged for your instructor.
           </p>
         ) : null}
-        <p className="text-xs text-muted-foreground">
-          No email login. This phone can only check in one student.
-        </p>
-      </div>
-      {incognito ? (
-        <p className="text-sm text-amber-700">
-          Private/incognito browsing was detected. This check-in will be
-          flagged for your instructor.
-        </p>
+        {error ? (
+          <p id={errorId} role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" className="w-full">
+          Check in
+        </Button>
+      </form>
+      {showRosterAddLink ? (
+        <form action={startRosterAddRequest} className="space-y-2 border-t pt-3">
+          <input type="hidden" name="session_id" value={sessionId} />
+          <input type="hidden" name="email" value={email} />
+          <input type="hidden" name="token" value={tokenValue} />
+          <p className="text-xs text-muted-foreground">
+            Already tried @go.olemiss.edu and still not listed?
+          </p>
+          <Button type="submit" variant="outline" className="w-full">
+            Request roster addition
+          </Button>
+        </form>
       ) : null}
-      {error ? (
-        <p id={errorId} role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" className="w-full">
-        Check in
-      </Button>
-    </form>
+    </div>
   )
 }
