@@ -43,14 +43,14 @@ export default async function RosterSyncPage({
               ← Back to section
             </Link>
           </p>
-          <h1 className="text-2xl font-extrabold">Update roster from Blackboard</h1>
+          <h1 className="text-2xl font-extrabold">Update roster (Blackboard / Experience)</h1>
           <p className="text-muted-foreground">
             {course.code} {course.name} · {formatSectionLabel(section)}
           </p>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Compare Blackboard download to PSOA</CardTitle>
+            <CardTitle>Compare Blackboard or Experience download to PSOA</CardTitle>
           </CardHeader>
           <CardContent>
             {canManage ? (

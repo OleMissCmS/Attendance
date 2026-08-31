@@ -80,7 +80,7 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
       <form action={onPreview} className="space-y-4">
         <input type="hidden" name="section_id" value={sectionId} />
         <div className="space-y-1">
-          <Label htmlFor="roster_file">Blackboard Grade Center file</Label>
+          <Label htmlFor="roster_file">Blackboard or Experience file</Label>
           <Input
             id="roster_file"
             name="roster_file"
@@ -88,18 +88,20 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
             accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           />
           <p className="text-xs text-muted-foreground">
-            Upload a fresh Blackboard (or Insight/Experience) Grade Center
-            download. We will compare it to the current PSOA roster before
-            changing anything.
+            Upload a fresh Blackboard Grade Center or Experience Class List
+            download (.xlsx, .xls, .csv). We will compare it to the current
+            PSOA roster before changing anything.
           </p>
         </div>
         <div className="space-y-1">
-          <Label htmlFor="roster">Or paste Grade Center text</Label>
+          <Label htmlFor="roster">Or paste roster text</Label>
           <Textarea
             id="roster"
             name="roster"
             rows={6}
-            placeholder={"(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"}
+            placeholder={
+              "(e.g. Last Name\tFirst Name\tUsername\tStudent ID or Student Name\tID)"
+            }
           />
         </div>
         <Button type="submit" disabled={pending}>
@@ -118,8 +120,8 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
       </p>
 
       <DiffSection
-        title={`On Blackboard, not on PSOA (${preview.onlyInFile.length})`}
-        empty="None — every Blackboard student is already on PSOA."
+        title={`In file, not on PSOA (${preview.onlyInFile.length})`}
+        empty="None — every student in the file is already on PSOA."
         rows={preview.onlyInFile}
         decisions={decisions}
         options={[
@@ -132,8 +134,8 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
       />
 
       <DiffSection
-        title={`On PSOA, not on Blackboard (${preview.onlyInPsoa.length})`}
-        empty="None — every PSOA student is still on Blackboard."
+        title={`On PSOA, not in file (${preview.onlyInPsoa.length})`}
+        empty="None — every PSOA student is in the file."
         rows={preview.onlyInPsoa}
         decisions={decisions}
         options={[

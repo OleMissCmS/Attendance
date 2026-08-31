@@ -109,7 +109,7 @@ export default async function SectionPage({
         ) : null}
         {synced === "1" ? (
           <p className="text-sm font-medium text-[#000D26]">
-            Roster updated from your Blackboard comparison.
+            Roster updated from your file comparison.
           </p>
         ) : null}
 
@@ -276,12 +276,13 @@ export default async function SectionPage({
               {canManage ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  When Blackboard enrollment changes, upload a fresh Grade
-                  Center file and choose who to add, remove, or keep.
+                  When enrollment changes, upload a fresh Blackboard Grade
+                  Center or Experience Class List file and choose who to add,
+                  remove, or keep.
                 </p>
                 <Button asChild>
                   <Link href={`/faculty/sections/${sectionId}/roster-sync`}>
-                    Update roster from Blackboard
+                    Update roster (Blackboard / Experience)
                   </Link>
                 </Button>
                 <details className="rounded-md border px-3 py-2">
@@ -291,7 +292,9 @@ export default async function SectionPage({
                   <form action={addRoster} className="mt-3 space-y-3">
                     <input type="hidden" name="section_id" value={sectionId} />
                     <div className="space-y-1">
-                      <Label htmlFor="roster_file">Blackboard Grade Center file</Label>
+                      <Label htmlFor="roster_file">
+                        Blackboard or Experience file (.xlsx, .xls, .csv)
+                      </Label>
                       <Input
                         id="roster_file"
                         name="roster_file"
@@ -300,13 +303,13 @@ export default async function SectionPage({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="roster">Or paste Grade Center text</Label>
+                      <Label htmlFor="roster">Or paste roster text</Label>
                       <Textarea
                         id="roster"
                         name="roster"
                         rows={4}
                         placeholder={
-                          "(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"
+                          "(e.g. Last Name\tFirst Name\tUsername\tStudent ID or Student Name\tID)"
                         }
                       />
                     </div>

@@ -309,7 +309,7 @@ export async function previewRosterSync(
   if (!people.length) {
     return {
       error:
-        "No students found. Use a Blackboard Grade Center file with Username or Student Email Address.",
+        "No students found. Use a Blackboard Grade Center or Experience Class List file (.xlsx, .csv) with Username, Student Email, or Student ID.",
     }
   }
 

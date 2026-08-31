@@ -123,20 +123,20 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     id: "roster",
     title: "Build a roster",
     summary:
-      "Upload a Blackboard Grade Center file or paste roster text on the section page.",
+      "Upload a Blackboard Grade Center or Experience Class List file, or paste roster text on the section page.",
     paragraphs: [
-      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center or Insight/Experience CSV, XLS, or XLSX, or paste Grade Center text.",
-      "Required: Username (Blackboard) or Student Email Address (Insight/Experience — username is the part before @). Also include Last Name / Student Last Name, First Name / Student First Name, and Student ID / Student Number when available. Email stored for check-in is Username@go.olemiss.edu. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
+      "Open a section from [Courses](/faculty). Upload a Blackboard Grade Center or Experience Class List CSV, XLS, or XLSX, or paste roster text.",
+      "Accepted formats: Blackboard (with Username, Student Email, or Student ID) and Experience (Class List Summary with Student Name and ID). Email stored for check-in is Username@go.olemiss.edu or StudentID@go.olemiss.edu. Students already on the section are skipped; duplicates inside the same file are skipped. You can remove someone from the roster list afterward.",
     ],
     steps: [
       "From [Courses](/faculty), open the section.",
-      "Choose a Grade Center file or paste the roster text.",
+      "Choose a Blackboard or Experience file or paste the roster text.",
       "Select Add to roster and confirm students appear in the list.",
     ],
     callouts: [
       {
-        title: "Required upload fields",
-        body: "Required: Username or Student Email Address. Include Last Name / Student Last Name, First Name / Student First Name, and Student ID / Student Number when available.",
+        title: "Supported file formats",
+        body: "Both Blackboard Grade Center (Username, First/Last Name, Student ID) and Experience Class List (Student Name 'Last, First', ID) exports in .xlsx, .xls, or .csv are supported.",
       },
     ],
     links: [{ href: "/faculty", label: "Courses — open a section" }],
@@ -144,7 +144,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
       {
         src: "/tutorial/05-roster.png",
         alt: "Section page roster upload and student list",
-        caption: "Upload or paste a Blackboard roster from a section opened via [Courses](/faculty).",
+        caption: "Upload or paste a Blackboard or Experience roster from a section opened via [Courses](/faculty).",
       },
     ],
   },
