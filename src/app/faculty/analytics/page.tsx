@@ -1,7 +1,9 @@
 import { SiteChrome } from "@/components/site-chrome"
+import { AnalyticsPeriodSelector } from "@/components/analytics-period-selector"
 import { PlatformAnalyticsCharts } from "@/components/platform-analytics-charts"
 import { requirePlatformAdmin } from "@/lib/auth"
 import { formatAttendanceRate } from "@/lib/attendance-stats"
+import { parseAnalyticsPeriod } from "@/lib/analytics-period"
 import { decryptPii } from "@/lib/pii"
 import { parsePlatformUsageStats } from "@/lib/platform-usage-stats"
 import { createClient } from "@/lib/supabase/server"
@@ -56,11 +58,17 @@ type RosterMissRow = {
   session_started_at: string
 }
 
-export default async function PlatformAnalyticsPage() {
+export default async function PlatformAnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>
+}) {
   const profile = await requirePlatformAdmin()
+  const filters = await searchParams
+  const period = parseAnalyticsPeriod(filters.period)
   const supabase = await createClient()
   const [{ data, error }, { data: missData }] = await Promise.all([
-    supabase.rpc("platform_usage_stats"),
+    supabase.rpc("platform_usage_stats", { p_period: period }),
     supabase.rpc("list_roster_miss_attempts", { p_limit: 100 }),
   ])
   const stats = parsePlatformUsageStats(data)
@@ -137,9 +145,17 @@ export default async function PlatformAnalyticsPage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-extrabold text-[#000D26]">
-                Attendance usage
-              </h2>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-extrabold text-[#000D26]">
+                    Attendance usage
+                  </h2>
+                  <p className="mt-1 text-sm text-[#333F58]">
+                    Metrics for {stats.period.label.toLowerCase()}.
+                  </p>
+                </div>
+                <AnalyticsPeriodSelector period={period} />
+              </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <KpiCard
                   label="Avg attendance (all sections)"
@@ -148,13 +164,12 @@ export default async function PlatformAnalyticsPage() {
                 />
                 <KpiCard
                   label="Sessions"
-                  value={formatNum(stats.attendance.sessions_all_time)}
-                  hint={`${stats.attendance.sessions_7d} / 7d · ${stats.attendance.sessions_30d} / 30d · ${stats.attendance.live_sessions} live`}
+                  value={formatNum(stats.attendance.sessions)}
+                  hint={`${stats.attendance.live_sessions} live`}
                 />
                 <KpiCard
                   label="Check-ins"
-                  value={formatNum(stats.attendance.checkins_all_time)}
-                  hint={`${stats.attendance.checkins_7d} / 7d · ${stats.attendance.checkins_30d} / 30d`}
+                  value={formatNum(stats.attendance.checkins)}
                 />
                 <KpiCard
                   label="Avg session length"
@@ -164,18 +179,18 @@ export default async function PlatformAnalyticsPage() {
                       : `${stats.attendance.avg_session_minutes} min`
                   }
                   hint={
-                    stats.attendance.peak_day_30d
-                      ? `Peak day ${stats.attendance.peak_day_30d.date}: ${stats.attendance.peak_day_30d.sessions} sessions, ${stats.attendance.peak_day_30d.checkins} check-ins`
+                    stats.attendance.peak_day
+                      ? `Peak day ${stats.attendance.peak_day.date}: ${stats.attendance.peak_day.sessions} sessions, ${stats.attendance.peak_day.checkins} check-ins`
                       : undefined
                   }
                 />
                 <KpiCard
-                  label="Avg daily sessions (30d)"
-                  value={formatNum(stats.attendance.avg_daily_sessions_30d)}
+                  label="Avg daily sessions"
+                  value={formatNum(stats.attendance.avg_daily_sessions)}
                 />
                 <KpiCard
-                  label="Avg daily check-ins (30d)"
-                  value={formatNum(stats.attendance.avg_daily_checkins_30d)}
+                  label="Avg daily check-ins"
+                  value={formatNum(stats.attendance.avg_daily_checkins)}
                 />
               </div>
             </section>

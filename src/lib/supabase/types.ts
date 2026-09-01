@@ -506,7 +506,10 @@ export type Database = {
       is_faculty: { Args: never; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       live_session_info: { Args: { p_session_id: string }; Returns: Json }
-      platform_usage_stats: { Args: never; Returns: Json }
+      platform_usage_stats: {
+        Args: { p_period?: string }
+        Returns: Json
+      }
       code_expires_in: {
         Args: { p_session_id: string; p_token: string }
         Returns: number

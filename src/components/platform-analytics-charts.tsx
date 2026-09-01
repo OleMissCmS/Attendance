@@ -42,11 +42,12 @@ function CountTooltip({
 }
 
 export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }) {
-  const sessions = stats.series.sessions_per_day_30d.map((row) => ({
+  const periodLabel = stats.period.label
+  const sessions = stats.series.sessions_per_day.map((row) => ({
     label: formatCentralMonthDay(`${row.date}T12:00:00`),
     Sessions: row.count,
   }))
-  const checkins = stats.series.checkins_per_day_30d.map((row) => ({
+  const checkins = stats.series.checkins_per_day.map((row) => ({
     label: formatCentralMonthDay(`${row.date}T12:00:00`),
     Checkins: row.count,
   }))
@@ -59,7 +60,7 @@ export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }
     <div className="grid gap-6 xl:grid-cols-2">
       <section className="rounded-xl border border-[#333F58]/15 bg-white p-6 xl:col-span-2">
         <h2 className="text-lg font-extrabold text-[#000D26]">
-          Sessions per day (30 days)
+          Sessions per day ({periodLabel})
         </h2>
         <div className="mt-6 h-72">
           {sessions.length ? (
@@ -96,14 +97,16 @@ export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-sm text-[#333F58]">No sessions in the last 30 days.</p>
+            <p className="text-sm text-[#333F58]">
+              No sessions in {periodLabel.toLowerCase()}.
+            </p>
           )}
         </div>
       </section>
 
       <section className="rounded-xl border border-[#333F58]/15 bg-white p-6">
         <h2 className="text-lg font-extrabold text-[#000D26]">
-          Check-ins per day (30 days)
+          Check-ins per day ({periodLabel})
         </h2>
         <div className="mt-6 h-64">
           {checkins.length ? (
@@ -128,7 +131,9 @@ export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-sm text-[#333F58]">No check-ins in the last 30 days.</p>
+            <p className="text-sm text-[#333F58]">
+              No check-ins in {periodLabel.toLowerCase()}.
+            </p>
           )}
         </div>
       </section>
