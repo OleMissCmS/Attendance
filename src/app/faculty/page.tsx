@@ -1,11 +1,11 @@
 import { SiteChrome } from "@/components/site-chrome"
 import { StartCheckInForm } from "@/components/start-check-in-form"
-import { isActiveRecord } from "@/lib/active"
 import { requireFaculty } from "@/lib/auth"
 import {
   canManageAttendanceData,
   isAdvisorRole,
 } from "@/lib/faculty-email"
+import { loadAuthorizedCourses } from "@/lib/faculty-access"
 import { formatSectionLabel } from "@/lib/section-label"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,24 +21,7 @@ export default async function FacultyHomePage({
   const advisor = isAdvisorRole(profile.role)
   const { started, reused, error } = await searchParams
   const supabase = await createClient()
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*, sections(*)")
-    .is("deleted_at", null)
-    .order("code")
-
-  const visibleCourses = (courses ?? [])
-    .filter(isActiveRecord)
-    .map((course) => ({
-      ...course,
-      sections: (course.sections ?? []).filter(isActiveRecord),
-    }))
-    .filter(
-      (course) =>
-        advisor ||
-        course.faculty_id === profile.id ||
-        course.sections.length > 0,
-    )
+  const visibleCourses = await loadAuthorizedCourses(profile)
   const sectionIds = visibleCourses.flatMap((course) =>
     (course.sections ?? []).map((section) => section.id),
   )
