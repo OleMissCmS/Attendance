@@ -47,10 +47,6 @@ export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }
     label: formatCentralMonthDay(`${row.date}T12:00:00`),
     Sessions: row.count,
   }))
-  const checkins = stats.series.checkins_per_day.map((row) => ({
-    label: formatCentralMonthDay(`${row.date}T12:00:00`),
-    Checkins: row.count,
-  }))
   const faculty = stats.series.faculty_signups_per_week_12w.map((row) => ({
     label: formatCentralMonthDay(`${row.week_start}T12:00:00`),
     Faculty: row.count,
@@ -99,40 +95,6 @@ export function PlatformAnalyticsCharts({ stats }: { stats: PlatformUsageStats }
           ) : (
             <p className="text-sm text-[#333F58]">
               No sessions in {periodLabel.toLowerCase()}.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-[#333F58]/15 bg-white p-6">
-        <h2 className="text-lg font-extrabold text-[#000D26]">
-          Check-ins per day ({periodLabel})
-        </h2>
-        <div className="mt-6 h-64">
-          {checkins.length ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={checkins} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={GRID} vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: SLATE, fontSize: 11 }}
-                  axisLine={{ stroke: GRID }}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: SLATE, fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                />
-                <Tooltip content={<CountTooltip />} />
-                <Bar dataKey="Checkins" fill={NAVY} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-[#333F58]">
-              No check-ins in {periodLabel.toLowerCase()}.
             </p>
           )}
         </div>

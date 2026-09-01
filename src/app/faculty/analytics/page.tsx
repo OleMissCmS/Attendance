@@ -1,11 +1,17 @@
 import { SiteChrome } from "@/components/site-chrome"
 import { AnalyticsPeriodSelector } from "@/components/analytics-period-selector"
+import { AnalyticsScopeSelector } from "@/components/analytics-scope-selector"
 import { PlatformAnalyticsCharts } from "@/components/platform-analytics-charts"
+import { CheckinsExpectedChart } from "@/components/checkins-expected-chart"
+import { FrictionQualityChart } from "@/components/friction-quality-chart"
 import { requirePlatformAdmin } from "@/lib/auth"
-import { formatAttendanceRate } from "@/lib/attendance-stats"
 import { parseAnalyticsPeriod } from "@/lib/analytics-period"
+import { loadAnalyticsCatalog } from "@/lib/analytics-catalog"
+import { parseIdList, type AnalyticsScopeOption } from "@/lib/analytics-scope"
+import { formatAttendanceRate } from "@/lib/attendance-stats"
 import { decryptPii } from "@/lib/pii"
 import { parsePlatformUsageStats } from "@/lib/platform-usage-stats"
+import { formatSectionLabel } from "@/lib/section-label"
 import { createClient } from "@/lib/supabase/server"
 import { formatCentralDateTime } from "@/lib/time"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,14 +67,36 @@ type RosterMissRow = {
 export default async function PlatformAnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>
+  searchParams: Promise<{
+    period?: string
+    courses?: string
+    sections?: string
+  }>
 }) {
   const profile = await requirePlatformAdmin()
   const filters = await searchParams
   const period = parseAnalyticsPeriod(filters.period)
+  const courseIds = parseIdList(filters.courses)
+  const sectionIds = parseIdList(filters.sections)
+  const catalog = await loadAnalyticsCatalog()
+  const scopeSections: AnalyticsScopeOption[] = catalog.flatMap((course) =>
+    course.sections.map((section) => ({
+      id: section.id,
+      course_id: course.id,
+      courseCode: course.code,
+      courseName: course.name,
+      term: section.term,
+      section_number: section.section_number,
+      label: section.label,
+    })),
+  )
   const supabase = await createClient()
   const [{ data, error }, { data: missData }] = await Promise.all([
-    supabase.rpc("platform_usage_stats", { p_period: period }),
+    supabase.rpc("platform_usage_stats", {
+      p_period: period,
+      p_course_ids: courseIds.length ? courseIds : null,
+      p_section_ids: sectionIds.length ? sectionIds : null,
+    }),
     supabase.rpc("list_roster_miss_attempts", { p_limit: 100 }),
   ])
   const stats = parsePlatformUsageStats(data)
@@ -78,7 +106,7 @@ export default async function PlatformAnalyticsPage({
     <SiteChrome profile={profile}>
       <main className="mx-auto max-w-[62rem] space-y-8 px-4 py-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#000D26]">Analytics</h1>
+          <h1 className="text-2xl font-extrabold text-[#000D26]">Admin</h1>
           <p className="mt-1 text-sm text-[#333F58]">
             Platform usage across the whole site. Aggregate counts hide student
             identities; failed check-in emails below are for support only.
@@ -152,13 +180,41 @@ export default async function PlatformAnalyticsPage({
                   </h2>
                   <p className="mt-1 text-sm text-[#333F58]">
                     Metrics for {stats.period.label.toLowerCase()}.
+                    {courseIds.length || sectionIds.length
+                      ? " Filtered to selected courses/sections."
+                      : " All platform courses and sections."}
                   </p>
                 </div>
-                <AnalyticsPeriodSelector period={period} />
+                <AnalyticsPeriodSelector
+                  period={period}
+                  courses={filters.courses}
+                  sections={filters.sections}
+                />
               </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Filter by course or section</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AnalyticsScopeSelector
+                    courses={catalog.map((course) => ({
+                      id: course.id,
+                      code: course.code,
+                      name: course.name,
+                    }))}
+                    sections={scopeSections.map((section) => ({
+                      ...section,
+                      label: formatSectionLabel(section),
+                    }))}
+                    defaultCourseIds={courseIds}
+                    defaultSectionIds={sectionIds}
+                    period={period}
+                  />
+                </CardContent>
+              </Card>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <KpiCard
-                  label="Avg attendance (all sections)"
+                  label="Avg attendance (scoped)"
                   value={formatRate(stats.attendance.avg_attendance_rate)}
                   hint={`${stats.attendance.present_checkins} of ${stats.attendance.expected_checkins} expected`}
                 />
@@ -193,62 +249,19 @@ export default async function PlatformAnalyticsPage({
                   value={formatNum(stats.attendance.avg_daily_checkins)}
                 />
               </div>
+              <CheckinsExpectedChart
+                periodLabel={stats.period.label}
+                data={stats.series.checkins_vs_expected_per_day ?? []}
+              />
             </section>
 
-            <section className="space-y-3">
-              <h2 className="text-lg font-extrabold text-[#000D26]">
-                Friction / quality
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <KpiCard
-                  label="Roster-add requests"
-                  value={formatNum(
-                    (stats.friction.roster_add_by_status.pending ?? 0) +
-                      (stats.friction.roster_add_by_status.added ?? 0) +
-                      (stats.friction.roster_add_by_status.rejected ?? 0),
-                  )}
-                  hint={`Pending ${stats.friction.roster_add_by_status.pending ?? 0} · Added ${stats.friction.roster_add_by_status.added ?? 0} · Rejected ${stats.friction.roster_add_by_status.rejected ?? 0}`}
-                />
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold text-[#333F58]">
-                      <a href="#failed-checkins" className="hover:underline">
-                        Not-on-roster attempts
-                      </a>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-extrabold text-[#000D26]">
-                      {formatNum(stats.friction.roster_miss_attempts)}
-                    </p>
-                    {missAttempts.length ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        <a href="#failed-checkins" className="hover:underline">
-                          See failed check-ins below
-                        </a>
-                      </p>
-                    ) : null}
-                  </CardContent>
-                </Card>
-                <KpiCard
-                  label="Incognito check-ins"
-                  value={formatNum(stats.friction.incognito_checkins)}
-                  hint={
-                    stats.friction.incognito_rate == null
-                      ? undefined
-                      : `${formatRate(stats.friction.incognito_rate)} of all check-ins`
-                  }
-                />
-                <KpiCard
-                  label="Device flags"
-                  value={formatNum(
-                    stats.friction.late_device_flags +
-                      stats.friction.device_conflict_flags,
-                  )}
-                  hint={`Late device ${stats.friction.late_device_flags} · Conflict ${stats.friction.device_conflict_flags}`}
-                />
-              </div>
-            </section>
+            <FrictionQualityChart
+              period={period}
+              periodLabel={stats.period.label}
+              data={stats.series.friction_per_day ?? []}
+              courses={filters.courses}
+              sections={filters.sections}
+            />
 
             <PlatformAnalyticsCharts stats={stats} />
 

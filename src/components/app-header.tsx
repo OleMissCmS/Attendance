@@ -27,7 +27,7 @@ export function AppHeader({
                 Reports
               </Link>
               <Link href="/faculty/stats" className="hover:text-primary-foreground">
-                Stats
+                My Analytics
               </Link>
             </nav>
           ) : (

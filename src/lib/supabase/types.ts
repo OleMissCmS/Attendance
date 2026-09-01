@@ -111,6 +111,7 @@ export type Database = {
         Row: {
           ended_at: string | null
           id: string
+          roster_count_at_start: number | null
           section_id: number
           started_at: string
           started_by: string
@@ -118,6 +119,7 @@ export type Database = {
         Insert: {
           ended_at?: string | null
           id?: string
+          roster_count_at_start?: number | null
           section_id: number
           started_at?: string
           started_by: string
@@ -125,6 +127,7 @@ export type Database = {
         Update: {
           ended_at?: string | null
           id?: string
+          roster_count_at_start?: number | null
           section_id?: number
           started_at?: string
           started_by?: string
@@ -506,8 +509,20 @@ export type Database = {
       is_faculty: { Args: never; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       live_session_info: { Args: { p_session_id: string }; Returns: Json }
+      faculty_usage_stats: {
+        Args: {
+          p_period?: string
+          p_course_ids?: number[] | null
+          p_section_ids?: number[] | null
+        }
+        Returns: Json
+      }
       platform_usage_stats: {
-        Args: { p_period?: string }
+        Args: {
+          p_period?: string
+          p_course_ids?: number[] | null
+          p_section_ids?: number[] | null
+        }
         Returns: Json
       }
       code_expires_in: {

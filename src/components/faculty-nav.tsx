@@ -82,14 +82,14 @@ export function FacultyNav({
         },
         {
           href: "/faculty/stats",
-          label: "Stats",
+          label: "My Analytics",
           match: (path: string) => path.startsWith("/faculty/stats"),
         },
         ...(platformAdmin
           ? [
               {
                 href: "/faculty/analytics",
-                label: "Analytics",
+                label: "Admin",
                 match: (path: string) => path.startsWith("/faculty/analytics"),
               },
             ]

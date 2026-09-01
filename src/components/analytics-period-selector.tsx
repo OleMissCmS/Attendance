@@ -6,11 +6,19 @@ const selectClass =
 
 export function AnalyticsPeriodSelector({
   period,
+  courses,
+  sections,
 }: {
   period: AnalyticsPeriod
+  courses?: string
+  sections?: string
 }) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-3">
+      {courses ? <input type="hidden" name="courses" value={courses} /> : null}
+      {sections ? (
+        <input type="hidden" name="sections" value={sections} />
+      ) : null}
       <div className="space-y-1">
         <Label htmlFor="period">Time period</Label>
         <select

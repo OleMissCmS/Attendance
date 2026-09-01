@@ -1,4 +1,5 @@
 import type { AnalyticsPeriod } from "@/lib/analytics-period"
+import type { FrictionPerDay } from "@/lib/friction-stats"
 
 export type PlatformUsageStats = {
   generated_at: string
@@ -51,7 +52,13 @@ export type PlatformUsageStats = {
   series: {
     sessions_per_day: { date: string; count: number }[]
     checkins_per_day: { date: string; count: number }[]
+    checkins_vs_expected_per_day: {
+      date: string
+      actual: number
+      expected: number
+    }[]
     faculty_signups_per_week_12w: { week_start: string; count: number }[]
+    friction_per_day: FrictionPerDay[]
   }
 }
 
