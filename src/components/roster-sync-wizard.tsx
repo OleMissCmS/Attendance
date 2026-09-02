@@ -8,6 +8,7 @@ import {
   type RosterSyncPreviewState,
 } from "@/app/faculty/actions"
 import { displayRosterName } from "@/lib/roster-diff"
+import { RosterExperienceNote } from "@/components/roster-experience-note"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -97,6 +98,7 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
             with Username or Student Email Address. We compare it to the current
             PSOA roster before changing anything.
           </p>
+          <RosterExperienceNote />
         </div>
         <div className="space-y-1">
           <Label htmlFor="roster">Or paste roster text</Label>
