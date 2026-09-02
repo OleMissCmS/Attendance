@@ -145,3 +145,15 @@ export function displayRosterName(row: {
   if (row.name) return row.name
   return row.username || "—"
 }
+
+/** Sort by Last, First (then username) so new adds appear in place, not at the bottom. */
+export function compareRosterAlphabetically(
+  a: { lastName: string; firstName: string; name: string; username: string },
+  b: { lastName: string; firstName: string; name: string; username: string },
+) {
+  return (
+    displayRosterName(a).localeCompare(displayRosterName(b), undefined, {
+      sensitivity: "base",
+    }) || a.username.localeCompare(b.username, undefined, { sensitivity: "base" })
+  )
+}

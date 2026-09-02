@@ -9,6 +9,7 @@ import {
   startSession,
 } from "@/app/faculty/actions"
 import { decryptEnrollment, decryptPii } from "@/lib/pii"
+import { compareRosterAlphabetically } from "@/lib/roster-diff"
 import { formatSectionLabel } from "@/lib/section-label"
 import {
   formatSessionTiming,
@@ -63,8 +64,7 @@ export default async function SectionPage({
     supabase
       .from("enrollments")
       .select("*")
-      .eq("section_id", sectionId)
-      .order("created_at"),
+      .eq("section_id", sectionId),
     supabase
       .from("attendance_sessions")
       .select("*")
@@ -86,6 +86,10 @@ export default async function SectionPage({
 
   const live = sessions?.find((session) => !session.ended_at)
   const course = section.courses
+  // Names are encrypted at rest, so sort after decrypt (not by created_at).
+  const sortedEnrollments = [...(enrollments ?? [])].sort((a, b) =>
+    compareRosterAlphabetically(decryptEnrollment(a), decryptEnrollment(b)),
+  )
 
   return (
     <SiteChrome profile={profile}>
@@ -277,7 +281,7 @@ export default async function SectionPage({
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Roster ({enrollments?.length ?? 0})</CardTitle>
+              <CardTitle>Roster ({sortedEnrollments.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {canManage ? (
@@ -332,7 +336,7 @@ export default async function SectionPage({
                 </p>
               )}
               <ul className="divide-y text-sm">
-                {enrollments?.map((row) => {
+                {sortedEnrollments.map((row) => {
                   const student = decryptEnrollment(row)
                   return (
                     <li
