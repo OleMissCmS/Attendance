@@ -106,7 +106,7 @@ export type RosterPerson = {
 }
 
 export const EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE =
-  "Use a Blackboard Grade Center export — Experience Class List files lack Username/Email required for check-in matching."
+  "Experience Class List exports cannot be used — they do not include Username or Email, which are required for student check-in matching. Use a Blackboard Grade Center export instead."
 
 export class RosterParseError extends Error {
   constructor(message: string) {
