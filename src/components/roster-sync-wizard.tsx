@@ -80,7 +80,7 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
       <form action={onPreview} className="space-y-4">
         <input type="hidden" name="section_id" value={sectionId} />
         <div className="space-y-1">
-          <Label htmlFor="roster_file">Blackboard or Experience file</Label>
+          <Label htmlFor="roster_file">Blackboard Grade Center file</Label>
           <Input
             id="roster_file"
             name="roster_file"
@@ -88,8 +88,8 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
             accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           />
           <p className="text-xs text-muted-foreground">
-            Upload a fresh Blackboard Grade Center or Experience Class List
-            download (.xlsx, .xls, .csv). We will compare it to the current
+            Upload a fresh Blackboard Grade Center download (.xlsx, .xls, .csv)
+            with Username or Student Email Address. We compare it to the current
             PSOA roster before changing anything.
           </p>
         </div>
@@ -99,9 +99,7 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
             id="roster"
             name="roster"
             rows={6}
-            placeholder={
-              "(e.g. Last Name\tFirst Name\tUsername\tStudent ID or Student Name\tID)"
-            }
+            placeholder="(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"
           />
         </div>
         <Button type="submit" disabled={pending}>

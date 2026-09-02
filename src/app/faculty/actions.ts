@@ -10,7 +10,11 @@ import {
   usernameFromEmail,
   decryptEnrollment,
 } from "@/lib/pii"
-import { parseBlackboardRoster, parseRosterFile } from "@/lib/blackboard-roster"
+import {
+  parseBlackboardRoster,
+  parseRosterFile,
+  RosterParseError,
+} from "@/lib/blackboard-roster"
 import {
   collapseWhitespace,
   isPlaceholderValue,
@@ -199,20 +203,29 @@ export async function updateSection(formData: FormData) {
   redirect("/faculty/manage")
 }
 
+async function loadRosterPeople(formData: FormData) {
+  const file = formData.get("roster_file")
+  if (file instanceof File && file.size > 0) {
+    return parseRosterFile(file)
+  }
+  const raw = String(formData.get("roster") ?? "")
+  return parseBlackboardRoster(raw)
+}
+
 export async function addRoster(formData: FormData) {
   await requireWritableFaculty()
   const supabase = await createClient()
   const sectionId = Number(formData.get("section_id"))
   if (!sectionId) redirect("/faculty")
 
-  const file = formData.get("roster_file")
-  let people = [] as Awaited<ReturnType<typeof parseRosterFile>>
-
-  if (file instanceof File && file.size > 0) {
-    people = await parseRosterFile(file)
-  } else {
-    const raw = String(formData.get("roster") ?? "")
-    people = parseBlackboardRoster(raw)
+  let people: Awaited<ReturnType<typeof parseRosterFile>>
+  try {
+    people = await loadRosterPeople(formData)
+  } catch (error) {
+    if (error instanceof RosterParseError) {
+      redirect(`/faculty/sections/${sectionId}?error=experience_roster`)
+    }
+    throw error
   }
 
   const uniqueByHash = new Map<string, (typeof people)[number]>()
@@ -299,17 +312,19 @@ export async function previewRosterSync(
   if (!sectionId) return { error: "Missing section." }
 
   const file = formData.get("roster_file")
-  let people = [] as Awaited<ReturnType<typeof parseRosterFile>>
-  if (file instanceof File && file.size > 0) {
-    people = await parseRosterFile(file)
-  } else {
-    const raw = String(formData.get("roster") ?? "")
-    people = parseBlackboardRoster(raw)
+  let people: Awaited<ReturnType<typeof parseRosterFile>>
+  try {
+    people = await loadRosterPeople(formData)
+  } catch (error) {
+    if (error instanceof RosterParseError) {
+      return { error: error.message }
+    }
+    throw error
   }
   if (!people.length) {
     return {
       error:
-        "No students found. Use a Blackboard Grade Center or Experience Class List file (.xlsx, .csv) with Username, Student Email, or Student ID.",
+        "No students found. Use a Blackboard Grade Center file (.xlsx, .csv) with Username or Student Email Address.",
     }
   }
 

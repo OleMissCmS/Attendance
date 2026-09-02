@@ -1,3 +1,4 @@
+import { EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE } from "@/lib/blackboard-roster"
 import { SiteChrome } from "@/components/site-chrome"
 import {
   addRoster,
@@ -105,6 +106,11 @@ export default async function SectionPage({
         {error === "request" ? (
           <p role="alert" className="text-sm font-medium text-[#CE1126]">
             Could not update that roster request. Try again.
+          </p>
+        ) : null}
+        {error === "experience_roster" ? (
+          <p role="alert" className="text-sm font-medium text-[#CE1126]">
+            {EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE}
           </p>
         ) : null}
         {synced === "1" ? (
@@ -277,12 +283,12 @@ export default async function SectionPage({
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   When enrollment changes, upload a fresh Blackboard Grade
-                  Center or Experience Class List file and choose who to add,
-                  remove, or keep.
+                  Center file with Username or Student Email Address and choose
+                  who to add, remove, or keep.
                 </p>
                 <Button asChild>
                   <Link href={`/faculty/sections/${sectionId}/roster-sync`}>
-                    Update roster (Blackboard / Experience)
+                    Update roster from Blackboard
                   </Link>
                 </Button>
                 <details className="rounded-md border px-3 py-2">
@@ -293,7 +299,7 @@ export default async function SectionPage({
                     <input type="hidden" name="section_id" value={sectionId} />
                     <div className="space-y-1">
                       <Label htmlFor="roster_file">
-                        Blackboard or Experience file (.xlsx, .xls, .csv)
+                        Blackboard Grade Center file (.xlsx, .xls, .csv)
                       </Label>
                       <Input
                         id="roster_file"
@@ -308,9 +314,7 @@ export default async function SectionPage({
                         id="roster"
                         name="roster"
                         rows={4}
-                        placeholder={
-                          "(e.g. Last Name\tFirst Name\tUsername\tStudent ID or Student Name\tID)"
-                        }
+                        placeholder="(e.g. Last Name\tFirst Name\tUsername\tStudent ID)"
                       />
                     </div>
                     <Button type="submit" variant="secondary">

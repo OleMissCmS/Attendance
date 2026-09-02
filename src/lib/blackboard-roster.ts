@@ -105,6 +105,33 @@ export type RosterPerson = {
   name: string
 }
 
+export const EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE =
+  "Use a Blackboard Grade Center export — Experience Class List files lack Username/Email required for check-in matching."
+
+export class RosterParseError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "RosterParseError"
+  }
+}
+
+function isExperienceOnlyRosterHeaders(headers: string[]) {
+  const normHeaders = headers.map(normalizeHeader)
+  const hasUser = headerIndex(normHeaders, USERNAME_ALIASES) >= 0
+  const hasEmail = headerIndex(normHeaders, EMAIL_ALIASES) >= 0
+  if (hasUser || hasEmail) return false
+  const hasFullName = headerIndex(normHeaders, FULL_NAME_ALIASES) >= 0
+  const hasLast = headerIndex(normHeaders, LAST_NAME_ALIASES) >= 0
+  const hasId = headerIndex(normHeaders, STUDENT_ID_ALIASES) >= 0
+  return (hasFullName || hasLast) && hasId
+}
+
+function rejectExperienceOnlyRoster(headers: string[]) {
+  if (isExperienceOnlyRosterHeaders(headers)) {
+    throw new RosterParseError(EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE)
+  }
+}
+
 function normalizeHeader(s: string) {
   return String(s || "")
     .trim()
@@ -203,6 +230,7 @@ export function parseRosterMatrix(matrix: unknown[][]): RosterPerson[] {
   if (headerLineIdx < 0 || headerLineIdx >= rows.length - 1) return []
 
   const headers = rows[headerLineIdx]
+  rejectExperienceOnlyRoster(headers)
   const lastIdx = headerIndex(headers, LAST_NAME_ALIASES)
   const firstIdx = headerIndex(headers, FIRST_NAME_ALIASES)
   const fullIdx = headerIndex(headers, FULL_NAME_ALIASES)

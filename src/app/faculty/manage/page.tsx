@@ -39,7 +39,7 @@ export default async function ManageCoursesPage({
         <h1 className="text-2xl font-extrabold">Manage Courses</h1>
         <p className="text-muted-foreground">
           Create a course, invite guests, or archive a course or section.
-          Use Update roster to compare a new Blackboard or Experience download
+          Use Update roster to compare a new Blackboard Grade Center download
           with the current PSOA roster. Rosters, sessions, and attendance stay in
           the database when you delete.
         </p>
