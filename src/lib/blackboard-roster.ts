@@ -115,15 +115,30 @@ export class RosterParseError extends Error {
   }
 }
 
+export function isRosterParseError(error: unknown): error is RosterParseError {
+  return (
+    error instanceof RosterParseError ||
+    (error instanceof Error && error.name === "RosterParseError")
+  )
+}
+
+/** Experience Class List — not Blackboard Last Name / First Name + Student ID. */
 function isExperienceOnlyRosterHeaders(headers: string[]) {
   const normHeaders = headers.map(normalizeHeader)
   const hasUser = headerIndex(normHeaders, USERNAME_ALIASES) >= 0
   const hasEmail = headerIndex(normHeaders, EMAIL_ALIASES) >= 0
   if (hasUser || hasEmail) return false
-  const hasFullName = headerIndex(normHeaders, FULL_NAME_ALIASES) >= 0
-  const hasLast = headerIndex(normHeaders, LAST_NAME_ALIASES) >= 0
+
   const hasId = headerIndex(normHeaders, STUDENT_ID_ALIASES) >= 0
-  return (hasFullName || hasLast) && hasId
+  if (!hasId) return false
+
+  const hasStudentName = normHeaders.includes("student name")
+  const hasRegStatus = headerIndex(normHeaders, STATUS_ALIASES) >= 0
+  const hasFullName = headerIndex(normHeaders, FULL_NAME_ALIASES) >= 0
+
+  if (hasStudentName) return true
+  if (hasRegStatus && hasFullName) return true
+  return false
 }
 
 function rejectExperienceOnlyRoster(headers: string[]) {
@@ -364,8 +379,37 @@ export function bufferToText(buffer: Buffer) {
   return buffer.toString("utf8")
 }
 
+function looksLikeRosterText(text: string) {
+  return (
+    /username/i.test(text) ||
+    /last name/i.test(text) ||
+    /student email/i.test(text) ||
+    /student number/i.test(text) ||
+    text.includes("<table")
+  )
+}
+
+function parseRosterMatrixSafe(matrix: unknown[][]) {
+  try {
+    return parseRosterMatrix(matrix)
+  } catch (error) {
+    if (isRosterParseError(error)) return null
+    throw error
+  }
+}
+
 export async function parseRosterFile(file: File): Promise<RosterPerson[]> {
   const buffer = Buffer.from(await file.arrayBuffer())
+  const asText = bufferToText(buffer)
+
+  if (looksLikeRosterText(asText)) {
+    try {
+      const parsed = parseBlackboardRoster(asText)
+      if (parsed.length) return parsed
+    } catch (error) {
+      if (isRosterParseError(error)) throw error
+    }
+  }
 
   const isZip =
     buffer.length >= 4 &&
@@ -379,31 +423,42 @@ export async function parseRosterFile(file: File): Promise<RosterPerson[]> {
     buffer[2] === 0x11 &&
     buffer[3] === 0xe0
 
-  if (isZip || isOldExcel || /\.(xlsx|xls)$/i.test(file.name)) {
-    const XLSX = await import("xlsx")
-    const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true })
-    const targetSheetNames = [
-      ...workbook.SheetNames.filter((s) => /class\s*list/i.test(s)),
-      ...workbook.SheetNames.filter((s) => !/class\s*list/i.test(s)),
-    ]
+  if (isZip || isOldExcel || /\.(xlsx|xls|csv)$/i.test(file.name)) {
+    let experienceRejection: RosterParseError | null = null
+    try {
+      const XLSX = await import("xlsx")
+      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true })
+      const targetSheetNames = [
+        ...workbook.SheetNames.filter((s) => !/class\s*list/i.test(s)),
+        ...workbook.SheetNames.filter((s) => /class\s*list/i.test(s)),
+      ]
 
-    for (const sheetName of targetSheetNames) {
-      const sheet = workbook.Sheets[sheetName]
-      if (!sheet) continue
-      const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
-        sheet,
-        {
+      for (const sheetName of targetSheetNames) {
+        const sheet = workbook.Sheets[sheetName]
+        if (!sheet) continue
+        const matrix = XLSX.utils.sheet_to_json<
+          (string | number | boolean | null)[]
+        >(sheet, {
           header: 1,
           raw: false,
           defval: "",
           blankrows: false,
-        },
-      )
-      const parsed = parseRosterMatrix(matrix)
-      if (parsed.length) return parsed
+        })
+        const parsed = parseRosterMatrixSafe(matrix)
+        if (parsed === null) {
+          experienceRejection = new RosterParseError(
+            EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE,
+          )
+          continue
+        }
+        if (parsed.length) return parsed
+      }
+    } catch (error) {
+      if (isZip || isOldExcel) throw error
     }
+
+    if (experienceRejection) throw experienceRejection
   }
 
-  const asText = bufferToText(buffer)
   return parseBlackboardRoster(asText)
 }

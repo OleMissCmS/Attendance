@@ -25,12 +25,13 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
   function onPreview(formData: FormData) {
     setError(null)
     startTransition(async () => {
-      const result = await previewRosterSync(formData)
-      if (result.error || !result.preview) {
-        setError(result.error ?? "Could not read that roster file.")
-        setPreview(null)
-        return
-      }
+      try {
+        const result = await previewRosterSync(formData)
+        if (result.error || !result.preview) {
+          setError(result.error ?? "Could not read that roster file.")
+          setPreview(null)
+          return
+        }
       const next: DecisionMap = {}
       for (const row of result.preview.onlyInFile) {
         next[row.emailHash] = "add"
@@ -38,8 +39,12 @@ export function RosterSyncWizard({ sectionId }: { sectionId: number }) {
       for (const row of result.preview.onlyInPsoa) {
         next[row.emailHash] = "remove"
       }
-      setDecisions(next)
-      setPreview(result.preview)
+        setDecisions(next)
+        setPreview(result.preview)
+      } catch {
+        setError("Could not read that roster file. Check the format and try again.")
+        setPreview(null)
+      }
     })
   }
 

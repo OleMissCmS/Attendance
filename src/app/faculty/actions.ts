@@ -11,9 +11,9 @@ import {
   decryptEnrollment,
 } from "@/lib/pii"
 import {
+  isRosterParseError,
   parseBlackboardRoster,
   parseRosterFile,
-  RosterParseError,
 } from "@/lib/blackboard-roster"
 import {
   collapseWhitespace,
@@ -222,7 +222,7 @@ export async function addRoster(formData: FormData) {
   try {
     people = await loadRosterPeople(formData)
   } catch (error) {
-    if (error instanceof RosterParseError) {
+    if (isRosterParseError(error)) {
       redirect(`/faculty/sections/${sectionId}?error=experience_roster`)
     }
     throw error
@@ -316,7 +316,7 @@ export async function previewRosterSync(
   try {
     people = await loadRosterPeople(formData)
   } catch (error) {
-    if (error instanceof RosterParseError) {
+    if (isRosterParseError(error)) {
       return { error: error.message }
     }
     throw error
