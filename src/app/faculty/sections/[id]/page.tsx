@@ -1,4 +1,5 @@
 import { EXPERIENCE_ROSTER_UNSUPPORTED_MESSAGE } from "@/lib/blackboard-roster"
+import { RosterExperienceNote } from "@/components/roster-experience-note"
 import { SiteChrome } from "@/components/site-chrome"
 import {
   addRoster,
@@ -286,6 +287,7 @@ export default async function SectionPage({
                   Center file with Username or Student Email Address and choose
                   who to add, remove, or keep.
                 </p>
+                <RosterExperienceNote className="text-sm" />
                 <Button asChild>
                   <Link href={`/faculty/sections/${sectionId}/roster-sync`}>
                     Update roster from Blackboard
@@ -307,6 +309,7 @@ export default async function SectionPage({
                         type="file"
                         accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                       />
+                      <RosterExperienceNote />
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="roster">Or paste roster text</Label>

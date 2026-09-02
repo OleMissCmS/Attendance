@@ -136,7 +136,7 @@ export const TUTORIAL_TOPICS: TutorialTopic[] = [
     callouts: [
       {
         title: "Supported file format",
-        body: "Blackboard Grade Center exports (.xlsx, .xls, or .csv) with Username, First/Last Name, and Student Email Address. Experience Class List files are not supported — they lack Username/Email required for check-in matching.",
+        body: "Blackboard Grade Center exports (.xlsx, .xls, or .csv) with Username, First/Last Name, and Student Email Address. Experience Class List exports cannot be used — they do not include Username or Email, which are required for student check-in matching. Use a Blackboard Grade Center export instead.",
       },
     ],
     links: [{ href: "/faculty", label: "Courses — open a section" }],

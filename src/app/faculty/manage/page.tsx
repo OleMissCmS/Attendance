@@ -1,3 +1,4 @@
+import { RosterExperienceNote } from "@/components/roster-experience-note"
 import { SiteChrome } from "@/components/site-chrome"
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button"
 import { CreateCourseForm } from "@/components/create-course-form"
@@ -43,6 +44,7 @@ export default async function ManageCoursesPage({
           with the current PSOA roster. Rosters, sessions, and attendance stay in
           the database when you delete.
         </p>
+        <RosterExperienceNote className="text-sm" />
         {error === "course" || error === "missing" ? (
           <p role="alert" className="text-sm font-medium text-[#CE1126]">
             Enter a course code and name.
