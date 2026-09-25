@@ -582,7 +582,18 @@ export async function endSession(formData: FormData) {
   const sessionId = String(formData.get("session_id") ?? "")
   const sectionId = String(formData.get("section_id") ?? "")
   const { error } = await supabase.rpc("end_session", { p_session_id: sessionId })
-  if (error) redirect(`/faculty/sessions/${sessionId}/display?error=end`)
+  if (error) {
+    // Double-submit after a successful end: confirm the session is already closed.
+    const { data: session } = await supabase
+      .from("attendance_sessions")
+      .select("ended_at")
+      .eq("id", sessionId)
+      .maybeSingle()
+    if (session?.ended_at) {
+      redirect(sectionId ? `/faculty/sections/${sectionId}` : "/faculty")
+    }
+    redirect(`/faculty/sessions/${sessionId}/display?error=end`)
+  }
   redirect(sectionId ? `/faculty/sections/${sectionId}` : "/faculty")
 }
 

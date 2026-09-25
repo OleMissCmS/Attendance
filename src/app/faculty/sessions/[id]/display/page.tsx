@@ -35,9 +35,9 @@ export default async function DisplayPage({
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-[#000D26] px-4 text-center text-white">
         <p className="text-xl font-extrabold">
-          {error === "end"
-            ? "This session could not be ended."
-            : "This session has ended."}
+          {session.ended_at
+            ? "This session has ended."
+            : "This session could not be ended."}
         </p>
         <Button
           asChild

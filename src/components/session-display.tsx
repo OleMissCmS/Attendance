@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useFormStatus } from "react-dom"
 import QRCode from "qrcode"
 import { endSession } from "@/app/faculty/actions"
 import { createClient } from "@/lib/supabase/client"
@@ -9,6 +10,15 @@ import { Button } from "@/components/ui/button"
 const POLL_MS = 2000
 const ROTATE_MS = 15_000
 const ROTATE_SECONDS = ROTATE_MS / 1000
+
+function EndSessionButton() {
+  const { pending } = useFormStatus()
+  return (
+    <Button type="submit" variant="secondary" disabled={pending}>
+      {pending ? "Ending…" : "End session"}
+    </Button>
+  )
+}
 
 export function SessionDisplay({
   sessionId,
@@ -128,9 +138,7 @@ export function SessionDisplay({
           <form action={endSession}>
             <input type="hidden" name="session_id" value={sessionId} />
             <input type="hidden" name="section_id" value={sectionId} />
-            <Button type="submit" variant="secondary">
-              End session
-            </Button>
+            <EndSessionButton />
           </form>
         </div>
       </div>
