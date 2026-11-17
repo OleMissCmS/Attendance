@@ -6,24 +6,28 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-const CONFIRM_WORD = "Delete"
+const DEFAULT_CONFIRM_WORD = "Archive"
 
 export function ConfirmDeleteButton({
   action,
   hidden,
   label,
   confirmMessage,
+  confirmWord = DEFAULT_CONFIRM_WORD,
+  dialogTitle = "Confirm archive",
 }: {
   action: (formData: FormData) => void | Promise<void>
   hidden: Record<string, string>
   label: string
   confirmMessage: string
+  confirmWord?: string
+  dialogTitle?: string
 }) {
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
   const titleId = useId()
-  const matches = typed.trim() === CONFIRM_WORD
+  const matches = typed.trim() === confirmWord
 
   useEffect(() => {
     if (!open) return
@@ -62,13 +66,13 @@ export function ConfirmDeleteButton({
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id={titleId} className="text-lg font-extrabold text-[#000D26]">
-              Confirm deletion
+              {dialogTitle}
             </h2>
             <p className="mt-2 text-sm text-[#333F58]">{confirmMessage}</p>
             <p className="mt-3 text-sm text-[#333F58]">
-              Type <span className="font-extrabold">{CONFIRM_WORD}</span> to
-              confirm. This cannot be undone from the faculty page. Attendance
-              data is kept in the database.
+              Type <span className="font-extrabold">{confirmWord}</span> to
+              confirm. Archived courses leave active class lists and session
+              start. Rosters, sessions, and attendance stay in the database.
             </p>
             <form action={action} className="mt-4 space-y-4">
               {Object.entries(hidden).map(([name, value]) => (
@@ -76,7 +80,7 @@ export function ConfirmDeleteButton({
               ))}
               <div className="space-y-1">
                 <Label htmlFor={`${titleId}-confirm`}>
-                  Type {CONFIRM_WORD} to confirm
+                  Type {confirmWord} to confirm
                 </Label>
                 <Input
                   ref={inputRef}
@@ -84,7 +88,7 @@ export function ConfirmDeleteButton({
                   value={typed}
                   onChange={(event) => setTyped(event.target.value)}
                   autoComplete="off"
-                  placeholder={CONFIRM_WORD}
+                  placeholder={confirmWord}
                 />
               </div>
               <div className="flex justify-end gap-2">

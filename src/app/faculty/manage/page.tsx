@@ -13,6 +13,7 @@ import {
 import { requireCourseOwner } from "@/lib/auth"
 import { isActiveRecord } from "@/lib/active"
 import { formatSectionLabel } from "@/lib/section-label"
+import { formatCentralDate } from "@/lib/time"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -25,14 +26,23 @@ export default async function ManageCoursesPage({
   const profile = await requireCourseOwner()
   const { error } = await searchParams
   const supabase = await createClient()
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*, sections(*)")
-    .eq("faculty_id", profile.id)
-    .is("deleted_at", null)
-    .order("code")
+  const [{ data: courses }, { data: archivedCourses }] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("*, sections(*)")
+      .eq("faculty_id", profile.id)
+      .is("deleted_at", null)
+      .order("code"),
+    supabase
+      .from("courses")
+      .select("*, sections(*)")
+      .eq("faculty_id", profile.id)
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false }),
+  ])
 
   const owned = (courses ?? []).filter(isActiveRecord)
+  const archived = archivedCourses ?? []
 
   return (
     <SiteChrome profile={profile}>
@@ -41,8 +51,9 @@ export default async function ManageCoursesPage({
         <p className="text-muted-foreground">
           Create a course, invite guests, or archive a course or section.
           Use Update roster to compare a new Blackboard Grade Center download
-          with the current PSOA roster. Rosters, sessions, and attendance stay in
-          the database when you delete.
+          with the current PSOA roster. Archived courses leave active class
+          lists and session start; rosters, sessions, and attendance stay in the
+          database.
         </p>
         <RosterExperienceNote className="text-sm" />
         {error === "course" || error === "missing" ? (
@@ -78,7 +89,7 @@ export default async function ManageCoursesPage({
         ) : null}
         {error === "owner" ? (
           <p role="alert" className="text-sm font-medium text-[#CE1126]">
-            Only the course owner can edit or delete this item.
+            Only the course owner can edit or archive this item.
           </p>
         ) : null}
         <Card>
@@ -131,8 +142,8 @@ export default async function ManageCoursesPage({
                     <ConfirmDeleteButton
                       action={archiveCourse}
                       hidden={{ course_id: String(course.id) }}
-                      label="Delete course"
-                      confirmMessage={`Archive ${course.code} ${course.name} and all of its sections? Data is kept.`}
+                      label="Archive course"
+                      confirmMessage={`Archive ${course.code} ${course.name} and all of its sections? Data is kept for historical reports.`}
                     />
                   </div>
                 </CardHeader>
@@ -162,8 +173,8 @@ export default async function ManageCoursesPage({
                           <ConfirmDeleteButton
                             action={archiveSection}
                             hidden={{ section_id: String(section.id) }}
-                            label="Delete section"
-                            confirmMessage={`Archive ${course.code} ${formatSectionLabel(section)}? Data is kept.`}
+                            label="Archive section"
+                            confirmMessage={`Archive ${course.code} ${formatSectionLabel(section)}? Data is kept for historical reports.`}
                           />
                         </div>
                       </div>
@@ -182,6 +193,63 @@ export default async function ManageCoursesPage({
             )
           })
         )}
+
+        <section className="space-y-3 border-t pt-6">
+          <div>
+            <h2 className="text-xl font-extrabold text-[#000D26]">Archived</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Archived courses are kept for history. They do not appear under
+              Courses, cannot start sessions, and are excluded from current
+              analytics scope.
+            </p>
+          </div>
+          {!archived.length ? (
+            <p className="text-sm text-muted-foreground">
+              No archived courses yet.
+            </p>
+          ) : (
+            archived.map((course) => {
+              const sections = [...(course.sections ?? [])].sort((a, b) =>
+                formatSectionLabel(a).localeCompare(formatSectionLabel(b)),
+              )
+              return (
+                <Card key={course.id} className="border-[#333F58]/25 bg-[#F5F7FA]">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base text-[#333F58]">
+                      {course.code} — {course.name}
+                    </CardTitle>
+                    {course.deleted_at ? (
+                      <p className="text-xs text-muted-foreground">
+                        Archived {formatCentralDate(course.deleted_at)}
+                      </p>
+                    ) : null}
+                  </CardHeader>
+                  <CardContent>
+                    {sections.length ? (
+                      <ul className="space-y-1 text-sm text-[#333F58]">
+                        {sections.map((section) => (
+                          <li key={section.id}>
+                            {formatSectionLabel(section)}
+                            {section.deleted_at ? (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · archived {formatCentralDate(section.deleted_at)}
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No sections recorded.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
+        </section>
       </main>
     </SiteChrome>
   )
