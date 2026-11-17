@@ -14,7 +14,7 @@ import { formatSectionLabel } from "@/lib/section-label"
 import {
   formatSessionTiming,
 } from "@/lib/session-times"
-import { formatCentralTime } from "@/lib/time"
+import { formatCentralDate, formatCentralTime } from "@/lib/time"
 import { requireFaculty } from "@/lib/auth"
 import { canManageAttendanceData } from "@/lib/faculty-email"
 import { createClient } from "@/lib/supabase/server"
@@ -196,45 +196,6 @@ export default async function SectionPage({
           </Card>
         ) : null}
 
-        {missAttempts?.length ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Not-on-roster check-ins</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="text-muted-foreground">
-                Emails students tried when check-in said they were not on this
-                roster (or when a roster-add found they already were).
-              </p>
-              <ul className="divide-y">
-                {missAttempts.map((row) => {
-                  const attempted =
-                    decryptPii(row.attempted_email_cipher) || "(unknown)"
-                  const when = formatCentralTime(row.created_at)
-                  const sourceLabel =
-                    row.source === "roster_add_enrolled"
-                      ? "Already on roster (add form)"
-                      : "Not on roster (check-in)"
-                  return (
-                    <li
-                      key={row.id}
-                      className="flex flex-wrap justify-between gap-2 py-2"
-                    >
-                      <div>
-                        <p className="font-medium text-[#000D26]">{attempted}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {sourceLabel}
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{when}</p>
-                    </li>
-                  )
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-
         {canManage ? (
         <Card>
           <CardHeader>
@@ -274,6 +235,66 @@ export default async function SectionPage({
                 A session is currently live. Advisors can view reports; only
                 instructors and guests can run check-in.
               </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {missAttempts?.length ? (
+          <Card>
+            <CardContent className="p-0">
+              <details className="group">
+                <summary className="cursor-pointer list-none px-6 py-4 [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold leading-none">
+                        Not-on-roster check-ins ({missAttempts.length})
+                      </p>
+                      <p className="mt-2 text-sm text-muted-foreground group-open:hidden">
+                        Last attempt {formatCentralDate(missAttempts[0].created_at)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm text-muted-foreground group-open:hidden">
+                      Show
+                    </span>
+                    <span className="hidden shrink-0 text-sm text-muted-foreground group-open:inline">
+                      Hide
+                    </span>
+                  </div>
+                </summary>
+                <div className="space-y-2 border-t px-6 py-4 text-sm">
+                  <p className="text-muted-foreground">
+                    Emails students tried when check-in said they were not on this
+                    roster (or when a roster-add found they already were).
+                  </p>
+                  <ul className="divide-y">
+                    {missAttempts.map((row) => {
+                      const attempted =
+                        decryptPii(row.attempted_email_cipher) || "(unknown)"
+                      const when = formatCentralTime(row.created_at)
+                      const sourceLabel =
+                        row.source === "roster_add_enrolled"
+                          ? "Already on roster (add form)"
+                          : "Not on roster (check-in)"
+                      return (
+                        <li
+                          key={row.id}
+                          className="flex flex-wrap justify-between gap-2 py-2"
+                        >
+                          <div>
+                            <p className="font-medium text-[#000D26]">
+                              {attempted}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {sourceLabel}
+                            </p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{when}</p>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </details>
             </CardContent>
           </Card>
         ) : null}
