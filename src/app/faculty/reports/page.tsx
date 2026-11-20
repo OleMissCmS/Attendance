@@ -23,6 +23,7 @@ import {
   matchesStudentLookup,
   studentLookupHashes,
 } from "@/lib/student-identity"
+import { fetchAllBySessionIds } from "@/lib/supabase/fetch-all"
 import { createClient } from "@/lib/supabase/server"
 import { formatCentralDateTime } from "@/lib/time"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -191,30 +192,16 @@ export default async function ReportsPage({
     : { data: [] }
 
   const sessionIds = sessions?.map((session) => session.id) ?? []
-  const { data: records } = sessionIds.length
-    ? await supabase
-        .from("attendance_records")
-        .select("*")
-        .in("session_id", sessionIds)
-    : { data: [] }
-
-  const { data: deviceFlags } = sessionIds.length
-    ? await supabase
-        .from("attendance_flags")
-        .select("*")
-        .in("session_id", sessionIds)
-    : { data: [] as {
-        attempted_email_cipher: string
-        attempted_email_hash: string
-        bound_email_cipher: string
-        bound_email_hash: string
-        created_at: string
-        device_id: string | null
-        flag_type: string
-        id: number
-        section_id: number
-        session_id: string
-      }[] }
+  const records = await fetchAllBySessionIds(
+    supabase,
+    "attendance_records",
+    sessionIds,
+  )
+  const deviceFlags = await fetchAllBySessionIds(
+    supabase,
+    "attendance_flags",
+    sessionIds,
+  )
 
   const lateFlagsByKey = new Map<
     string,
@@ -231,6 +218,11 @@ export default async function ReportsPage({
 
   const presentKeys = new Set(
     (records ?? []).map((record) => `${record.session_id}:${record.email_hash}`),
+  )
+  // Same rule as analytics: sessions with no check-ins are mistaken starts
+  // and must not appear as all-zero grade columns.
+  const sessionIdsWithCheckins = new Set(
+    (records ?? []).map((record) => record.session_id),
   )
 
   type StudentRow = {
@@ -287,7 +279,9 @@ export default async function ReportsPage({
       (row) => row.section_id === section.id,
     )
     const sectionSessions = (sessions ?? []).filter(
-      (session) => session.section_id === section.id,
+      (session) =>
+        session.section_id === section.id &&
+        sessionIdsWithCheckins.has(session.id),
     )
     const rosterHashes = new Set(
       sectionEnrollments.map((row) => row.email_hash),
@@ -516,7 +510,9 @@ export default async function ReportsPage({
           (row) => row.section_id === singleSection.id,
         ),
         sessions: (sessions ?? []).filter(
-          (session) => session.section_id === singleSection.id,
+          (session) =>
+            session.section_id === singleSection.id &&
+            sessionIdsWithCheckins.has(session.id),
         ),
         presentKeys,
         studentHashes: studentHashes.length ? studentHashes : undefined,
@@ -528,7 +524,9 @@ export default async function ReportsPage({
 
   const experienceSessions = singleSection
     ? (sessions ?? []).filter(
-        (session) => session.section_id === singleSection.id,
+        (session) =>
+          session.section_id === singleSection.id &&
+          sessionIdsWithCheckins.has(session.id),
       )
     : []
   const experienceRoster = singleSection

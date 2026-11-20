@@ -1,18 +1,20 @@
 import { decryptEnrollment, type StudentIdentity } from "@/lib/pii"
+import { APP_TIME_ZONE, centralDateInput } from "@/lib/time"
 
 export function attendanceGradeHeader(startedAt: string, used: Set<string>) {
   const date = new Date(startedAt)
-  const ymd = [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-")
+  const ymd = centralDateInput(date)
   let label = `Attendance ${ymd} [Total Pts: 1 Score]`
   if (used.has(label)) {
-    const hm = `${String(date.getHours()).padStart(2, "0")}${String(
-      date.getMinutes(),
-    ).padStart(2, "0")}`
-    label = `Attendance ${ymd} ${hm} [Total Pts: 1 Score]`
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: APP_TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date)
+    const hour = parts.find((part) => part.type === "hour")?.value ?? "00"
+    const minute = parts.find((part) => part.type === "minute")?.value ?? "00"
+    label = `Attendance ${ymd} ${hour}${minute} [Total Pts: 1 Score]`
   }
   used.add(label)
   return label
