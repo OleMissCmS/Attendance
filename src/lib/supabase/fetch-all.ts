@@ -3,34 +3,44 @@ import type { Database } from "@/lib/supabase/types"
 
 const PAGE_SIZE = 1000
 
-type PublicTable = keyof Database["public"]["Tables"]
+type AttendanceRecord =
+  Database["public"]["Tables"]["attendance_records"]["Row"]
+type AttendanceFlag = Database["public"]["Tables"]["attendance_flags"]["Row"]
 
-/** Load every row for a `.in("session_id", …)` query past PostgREST’s default 1000-row cap. */
-export async function fetchAllBySessionIds<T extends PublicTable>(
+export async function fetchAllBySessionIds(
   supabase: SupabaseClient<Database>,
-  table: T,
+  table: "attendance_records",
   sessionIds: string[],
-  columns = "*",
-): Promise<Database["public"]["Tables"][T]["Row"][]> {
+): Promise<AttendanceRecord[]>
+export async function fetchAllBySessionIds(
+  supabase: SupabaseClient<Database>,
+  table: "attendance_flags",
+  sessionIds: string[],
+): Promise<AttendanceFlag[]>
+export async function fetchAllBySessionIds(
+  supabase: SupabaseClient<Database>,
+  table: "attendance_records" | "attendance_flags",
+  sessionIds: string[],
+): Promise<AttendanceRecord[] | AttendanceFlag[]> {
   if (!sessionIds.length) return []
 
-  const rows: Database["public"]["Tables"][T]["Row"][] = []
+  const rows: AttendanceRecord[] | AttendanceFlag[] = []
   let from = 0
   for (;;) {
     // Stable order is required; unordered .range() can skip/duplicate rows.
     const { data, error } = await supabase
       .from(table)
-      .select(columns)
+      .select("*")
       .in("session_id", sessionIds)
       .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
 
     if (error) {
-      throw new Error(`${String(table)}: ${error.message}`)
+      throw new Error(`${table}: ${error.message}`)
     }
 
-    const page = (data ?? []) as Database["public"]["Tables"][T]["Row"][]
-    rows.push(...page)
+    const page = data ?? []
+    ;(rows as unknown[]).push(...page)
     if (page.length < PAGE_SIZE) break
     from += PAGE_SIZE
   }
